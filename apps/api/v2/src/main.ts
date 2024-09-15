@@ -22,7 +22,7 @@ const run = async () => {
   const logger = new Logger("App");
 
   try {
-    bootstrap(app);
+    // bootstrap(app);
     const port = app.get(ConfigService<AppConfig, true>).get("api.port", { infer: true });
     void generateSwagger(app);
     await app.listen(port);
