@@ -42,9 +42,9 @@ async function generateSwagger(app: NestExpressApplication<Server>) {
 
   const outputFile = "./swagger/documentation.json";
 
-  // if (fs.existsSync(outputFile)) {
-  //   fs.unlinkSync(outputFile);
-  // }
+  if (fs.existsSync(outputFile)) {
+    fs.unlinkSync(outputFile);
+  }
 
   // fs.writeFileSync(outputFile, JSON.stringify(document, null, 2), { encoding: "utf8" });
   // SwaggerModule.setup("docs", app, document, {
