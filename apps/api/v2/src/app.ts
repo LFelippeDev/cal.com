@@ -4,7 +4,7 @@ import { BadRequestException, ValidationPipe, VersioningType } from "@nestjs/com
 import { BaseExceptionFilter, HttpAdapterHost } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import * as Sentry from "@sentry/node";
-import * as cookieParser from "cookie-parser";
+// import * as cookieParser from "cookie-parser";
 import { Request } from "express";
 
 // import helmet from "helmet";
@@ -78,7 +78,7 @@ export const bootstrap = (app: NestExpressApplication): NestExpressApplication =
   // app.useGlobalFilters(new HttpExceptionFilter());
   // app.useGlobalFilters(new TRPCExceptionFilter());
 
-  app.use(cookieParser());
+  // app.use(cookieParser());
 
   return app;
 };
