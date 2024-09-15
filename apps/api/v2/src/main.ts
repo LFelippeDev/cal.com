@@ -1,12 +1,12 @@
 import { Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { WinstonModule } from "nest-winston";
-import type { AppConfig } from "src/config/type";
 
 import { AppModule } from "./app.module";
 import { loggerConfig } from "./lib/logger";
+
+const API_PORT = process.env.API_PORT || "5555";
 
 const run = async () => {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -18,10 +18,9 @@ const run = async () => {
 
   try {
     // bootstrap(app);
-    const port = app.get(ConfigService<AppConfig, true>).get("api.port", { infer: true });
     // void generateSwagger(app);
-    await app.listen(port);
-    logger.log(`Application started on port: ${port}`);
+    await app.listen(API_PORT);
+    logger.log(`Application started on port: ${API_PORT}`);
   } catch (error) {
     console.error(error);
     logger.error("Application crashed", {
