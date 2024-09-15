@@ -9,7 +9,7 @@ import { Server } from "http";
 import { WinstonModule } from "nest-winston";
 import type { AppConfig } from "src/config/type";
 
-import { bootstrap } from "./app";
+// import { bootstrap } from "./app";
 import { AppModule } from "./app.module";
 import { loggerConfig } from "./lib/logger";
 
@@ -23,7 +23,7 @@ const run = async () => {
 
   try {
     // bootstrap(app);
-    const port = app.get(ConfigService<AppConfig, true>).get("api.port", { infer: true });
+    const port = app.get("5555");
     void generateSwagger(app);
     await app.listen(port);
     logger.log(`Application started on port: ${port}`);
