@@ -11,8 +11,8 @@ export class AppController {
   @Get("health")
   @Version(VERSION_NEUTRAL)
   getHealth(): string {
-    // retorna todos os arquivos na pasta raiz
-    const path = JSON.stringify(fs.readdirSync("/"));
+    // retorna todos os arquivos desta pasta
+    const path = JSON.stringify(fs.readdirSync(__dirname));
 
     return path;
   }
