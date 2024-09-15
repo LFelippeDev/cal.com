@@ -9,7 +9,9 @@ import { ApiTags as DocsTags, ApiExcludeController as DocsExcludeController } fr
 export class AppController {
   @Get("health")
   @Version(VERSION_NEUTRAL)
-  getHealth(): "OK" {
-    return "OK";
+  getHealth(): string {
+    // path atual
+    const path = process.cwd();
+    return path;
   }
 }
