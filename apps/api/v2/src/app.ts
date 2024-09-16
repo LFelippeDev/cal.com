@@ -7,10 +7,6 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import * as Sentry from "@sentry/node";
 // import * as cookieParser from "cookie-parser";
 import { Request } from "express";
-// import helmet from "helmet";
-import { HttpExceptionFilter } from "src/filters/http-exception.filter";
-import { PrismaExceptionFilter } from "src/filters/prisma-exception.filter";
-import { ZodExceptionFilter } from "src/filters/zod-exception.filter";
 
 import {
   API_VERSIONS,
@@ -21,7 +17,11 @@ import {
   X_CAL_SECRET_KEY,
 } from "@calcom/platform-constants";
 
+// import helmet from "helmet";
+import { HttpExceptionFilter } from "./filters/http-exception.filter";
+import { PrismaExceptionFilter } from "./filters/prisma-exception.filter";
 import { TRPCExceptionFilter } from "./filters/trpc-exception.filter";
+import { ZodExceptionFilter } from "./filters/zod-exception.filter";
 
 export const bootstrap = (app: NestExpressApplication): NestExpressApplication => {
   app.enableShutdownHooks();

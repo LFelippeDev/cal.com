@@ -1,6 +1,5 @@
 import { Controller, Get, Version, VERSION_NEUTRAL } from "@nestjs/common";
 import { ApiExcludeController as DocsExcludeController, ApiTags as DocsTags } from "@nestjs/swagger";
-import * as fs from "fs";
 
 import { getEnv } from "./env";
 
