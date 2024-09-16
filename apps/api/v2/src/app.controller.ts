@@ -12,6 +12,6 @@ export class AppController {
   @Version(VERSION_NEUTRAL)
   getHealth(): string {
     const path = JSON.stringify(fs.readdirSync(__dirname));
-    return "OK";
+    return path;
   }
 }
