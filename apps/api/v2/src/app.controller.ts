@@ -10,8 +10,7 @@ import { getEnv } from "./env";
 export class AppController {
   @Get("health")
   @Version(VERSION_NEUTRAL)
-  getHealth(): string {
-    const path = JSON.stringify(fs.readdirSync(__dirname));
-    return path;
+  getHealth(): "OK" {
+    return "OK";
   }
 }

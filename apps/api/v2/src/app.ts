@@ -7,11 +7,11 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import * as Sentry from "@sentry/node";
 // import * as cookieParser from "cookie-parser";
 import { Request } from "express";
-
 // import helmet from "helmet";
-// import { HttpExceptionFilter } from "src/filters/http-exception.filter";
-// import { PrismaExceptionFilter } from "src/filters/prisma-exception.filter";
-// import { ZodExceptionFilter } from "src/filters/zod-exception.filter";
+import { HttpExceptionFilter } from "src/filters/http-exception.filter";
+import { PrismaExceptionFilter } from "src/filters/prisma-exception.filter";
+import { ZodExceptionFilter } from "src/filters/zod-exception.filter";
+
 import {
   API_VERSIONS,
   VERSION_2024_04_15,
@@ -21,7 +21,7 @@ import {
   X_CAL_SECRET_KEY,
 } from "@calcom/platform-constants";
 
-// import { TRPCExceptionFilter } from "./filters/trpc-exception.filter";
+import { TRPCExceptionFilter } from "./filters/trpc-exception.filter";
 
 export const bootstrap = (app: NestExpressApplication): NestExpressApplication => {
   app.enableShutdownHooks();
@@ -74,10 +74,10 @@ export const bootstrap = (app: NestExpressApplication): NestExpressApplication =
   if (process.env.SENTRY_DSN) {
     Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
   }
-  // app.useGlobalFilters(new PrismaExceptionFilter());
-  // app.useGlobalFilters(new ZodExceptionFilter());
-  // app.useGlobalFilters(new HttpExceptionFilter());
-  // app.useGlobalFilters(new TRPCExceptionFilter());
+  app.useGlobalFilters(new PrismaExceptionFilter());
+  app.useGlobalFilters(new ZodExceptionFilter());
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new TRPCExceptionFilter());
 
   // app.use(cookieParser());
 
