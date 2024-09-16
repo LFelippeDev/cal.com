@@ -6,6 +6,7 @@ import * as fs from "fs";
 import { Server } from "http";
 import { WinstonModule } from "nest-winston";
 
+import { bootstrap } from "./app";
 import { AppModule } from "./app.module";
 import { loggerConfig } from "./lib/logger";
 
@@ -20,7 +21,7 @@ const run = async () => {
   const logger = new Logger("App");
 
   try {
-    // bootstrap(app);
+    bootstrap(app);
     void generateSwagger(app);
     await app.listen(API_PORT);
     logger.log(`Application started on port: ${API_PORT}`);
@@ -46,10 +47,10 @@ async function generateSwagger(app: NestExpressApplication<Server>) {
     fs.unlinkSync(outputFile);
   }
 
-  fs.writeFileSync(outputFile, JSON.stringify(document, null, 2), { encoding: "utf8" });
-  SwaggerModule.setup("docs", app, document, {
-    customCss: ".swagger-ui .topbar { display: none }",
-  });
+  // fs.writeFileSync(outputFile, JSON.stringify(document, null, 2), { encoding: "utf8" });
+  // SwaggerModule.setup("docs", app, document, {
+  //   customCss: ".swagger-ui .topbar { display: none }",
+  // });
 
   logger.log(`Swagger documentation available in the "/docs" endpoint\n`);
 }

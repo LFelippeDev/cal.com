@@ -1,5 +1,6 @@
 import { Controller, Get, Version, VERSION_NEUTRAL } from "@nestjs/common";
 import { ApiExcludeController as DocsExcludeController, ApiTags as DocsTags } from "@nestjs/swagger";
+import * as fs from "fs";
 
 import { getEnv } from "./env";
 
@@ -9,7 +10,8 @@ import { getEnv } from "./env";
 export class AppController {
   @Get("health")
   @Version(VERSION_NEUTRAL)
-  getHealth(): "OK" {
+  getHealth(): string {
+    const path = JSON.stringify(fs.readdirSync(__dirname));
     return "OK";
   }
 }
