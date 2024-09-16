@@ -6,7 +6,8 @@ import { Module } from "@nestjs/common";
 // import { OAuthClientModule } from "src/modules/oauth-clients/oauth-client.module";
 import { TimezoneModule } from "src/modules/timezones/timezones.module";
 
-// import { UsersModule } from "./users/users.module";
+import { UsersModule } from "./users/users.module";
+
 // import { WebhooksModule } from "./webhooks/webhooks.module";
 
 @Module({
@@ -15,7 +16,7 @@ import { TimezoneModule } from "src/modules/timezones/timezones.module";
     // BillingModule,
     // PlatformEndpointsModule,
     TimezoneModule,
-    // UsersModule,
+    UsersModule,
     // WebhooksModule,
     // DestinationCalendarsModule,
   ],
