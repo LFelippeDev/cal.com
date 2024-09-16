@@ -21,7 +21,7 @@ const run = async () => {
   const logger = new Logger("App");
 
   try {
-    // bootstrap(app);
+    bootstrap(app);
     void generateSwagger(app);
     await app.listen(API_PORT);
     logger.log(`Application started on port: ${API_PORT}`);
