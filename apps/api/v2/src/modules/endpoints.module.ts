@@ -1,24 +1,23 @@
 import type { MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { Module } from "@nestjs/common";
 
-// import { PlatformEndpointsModule } from "src/ee/platform-endpoints-module";
-// import { BillingModule } from "src/modules/billing/billing.module";
-// import { DestinationCalendarsModule } from "src/modules/destination-calendars/destination-calendars.module";
-// import { OAuthClientModule } from "src/modules/oauth-clients/oauth-client.module";
+import { PlatformEndpointsModule } from "../ee/platform-endpoints-module";
+import { BillingModule } from "./billing/billing.module";
+import { DestinationCalendarsModule } from "./destination-calendars/destination-calendars.module";
+import { OAuthClientModule } from "./oauth-clients/oauth-client.module";
 import { TimezoneModule } from "./timezones/timezones.module";
-
-// import { UsersModule } from "./users/users.module";
-// import { WebhooksModule } from "./webhooks/webhooks.module";
+import { UsersModule } from "./users/users.module";
+import { WebhooksModule } from "./webhooks/webhooks.module";
 
 @Module({
   imports: [
-    // OAuthClientModule,
-    // BillingModule,
-    // PlatformEndpointsModule,
+    OAuthClientModule,
+    BillingModule,
+    PlatformEndpointsModule,
     TimezoneModule,
-    // UsersModule,
-    // WebhooksModule,
-    // DestinationCalendarsModule,
+    UsersModule,
+    WebhooksModule,
+    DestinationCalendarsModule,
   ],
 })
 export class EndpointsModule implements NestModule {
