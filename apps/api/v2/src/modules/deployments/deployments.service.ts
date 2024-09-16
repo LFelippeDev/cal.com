@@ -2,7 +2,6 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import { DeploymentsRepository } from "../deployments/deployments.repository";
-import { RedisService } from "../redis/redis.service";
 
 const CACHING_TIME = 86400000; // 24 hours in milliseconds
 
@@ -15,8 +14,7 @@ type LicenseCheckResponse = {
 export class DeploymentsService {
   constructor(
     private readonly deploymentsRepository: DeploymentsRepository,
-    private readonly configService: ConfigService,
-    private readonly redisService: RedisService
+    private readonly configService: ConfigService
   ) {}
 
   async checkLicense() {
@@ -35,14 +33,10 @@ export class DeploymentsService {
       return false;
     }
     const licenseKeyUrl = this.configService.get("api.licenseKeyUrl") + `?key=${licenseKey}`;
-    const cachedData = await this.redisService.redis.get(getLicenseCacheKey(licenseKey));
-    if (cachedData) {
-      return (JSON.parse(cachedData) as LicenseCheckResponse)?.valid;
-    }
+
     const response = await fetch(licenseKeyUrl, { mode: "cors" });
     const data = (await response.json()) as LicenseCheckResponse;
     const cacheKey = getLicenseCacheKey(licenseKey);
-    this.redisService.redis.set(cacheKey, JSON.stringify(data), "EX", CACHING_TIME);
     return data.valid;
   }
 }
