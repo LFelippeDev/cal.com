@@ -1,9 +1,11 @@
 import { Module } from "@nestjs/common";
 
 import { AppController } from "./app.controller";
+import { EndpointsModule } from "./modules/endpoints.module";
+import { JwtModule } from "./modules/jwt/jwt.module";
 
 @Module({
-  imports: [],
+  imports: [EndpointsModule, JwtModule],
   controllers: [AppController],
   providers: [],
 })
