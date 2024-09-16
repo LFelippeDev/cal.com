@@ -7,19 +7,10 @@ import { RedisService } from "../../redis/redis.service";
 
 @Injectable()
 export class TimezonesService {
-  private cacheKey = "cityTimezones";
-
-  constructor(private readonly redisService: RedisService) {}
-
+  constructor(private readonly _redisService: RedisService) {}
   async getCityTimeZones(): Promise<CityTimezones> {
-    const cachedTimezones = await this.redisService.redis.get(this.cacheKey);
-    if (!cachedTimezones) {
-      const timezones = await cityTimezonesHandler();
-      await this.redisService.redis.set(this.cacheKey, JSON.stringify(timezones), "EX", 60 * 60 * 24);
+    const timezones = await cityTimezonesHandler();
 
-      return timezones;
-    } else {
-      return JSON.parse(cachedTimezones) as CityTimezones;
-    }
+    return timezones;
   }
 }
