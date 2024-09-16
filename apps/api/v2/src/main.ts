@@ -47,10 +47,10 @@ async function generateSwagger(app: NestExpressApplication<Server>) {
     fs.unlinkSync(outputFile);
   }
 
-  fs.writeFileSync(outputFile, JSON.stringify(document, null, 2), { encoding: "utf8" });
-  SwaggerModule.setup("docs", app, document, {
-    customCss: ".swagger-ui .topbar { display: none }",
-  });
+  // fs.writeFileSync(outputFile, JSON.stringify(document, null, 2), { encoding: "utf8" });
+  // SwaggerModule.setup("docs", app, document, {
+  //   customCss: ".swagger-ui .topbar { display: none }",
+  // });
 
   logger.log(`Swagger documentation available in the "/docs" endpoint\n`);
 }
