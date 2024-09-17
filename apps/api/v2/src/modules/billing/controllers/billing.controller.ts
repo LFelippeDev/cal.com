@@ -3,23 +3,22 @@ import {
   Body,
   Controller,
   Get,
-  Param,
-  Post,
-  Req,
-  UseGuards,
   Headers,
   HttpCode,
   HttpStatus,
   Logger,
+  Param,
+  Post,
+  Req,
+  UseGuards,
 } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { ApiExcludeController } from "@nestjs/swagger";
 import { Request } from "express";
 import { Stripe } from "stripe";
 
 import { ApiResponse } from "@calcom/platform-types";
 
-import { AppConfig } from "../../../config/type";
+import { getEnv } from "../../../env";
 import { API_VERSIONS_VALUES } from "../../../lib/api-versions";
 import { MembershipRoles } from "../../auth/decorators/roles/membership-roles.decorator";
 import { NextAuthGuard } from "../../auth/guards/next-auth/next-auth.guard";
@@ -39,11 +38,8 @@ export class BillingController {
   private readonly stripeWhSecret: string;
   private logger = new Logger("Billing Controller");
 
-  constructor(
-    private readonly billingService: BillingService,
-    private readonly configService: ConfigService<AppConfig>
-  ) {
-    this.stripeWhSecret = configService.get("stripe.webhookSecret", { infer: true }) ?? "";
+  constructor(private readonly billingService: BillingService) {
+    this.stripeWhSecret = getEnv("STRIPE_API_KEY");
   }
 
   @Get("/:teamId/check")

@@ -1,11 +1,10 @@
 import { InjectQueue } from "@nestjs/bull";
 import { Injectable, InternalServerErrorException, Logger, OnModuleDestroy } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { Queue } from "bull";
 import { DateTime } from "luxon";
 import Stripe from "stripe";
 
-import { AppConfig } from "../../../config/type";
+import { getEnv } from "../../../env";
 import { BILLING_QUEUE, INCREMENT_JOB, IncrementJobDataType } from "../../billing/billing.processor";
 import { BillingRepository } from "../../billing/billing.repository";
 import { BillingConfigService } from "../../billing/services/billing.config.service";
@@ -22,11 +21,10 @@ export class BillingService implements OnModuleDestroy {
     private readonly teamsRepository: OrganizationsRepository,
     public readonly stripeService: StripeService,
     private readonly billingRepository: BillingRepository,
-    private readonly configService: ConfigService<AppConfig>,
     private readonly billingConfigService: BillingConfigService,
     @InjectQueue(BILLING_QUEUE) private readonly billingQueue: Queue
   ) {
-    this.webAppUrl = this.configService.get("app.baseUrl", { infer: true }) ?? "https://app.cal.com";
+    this.webAppUrl = getEnv("WEB_APP_URL");
   }
 
   async getBillingData(teamId: number) {
