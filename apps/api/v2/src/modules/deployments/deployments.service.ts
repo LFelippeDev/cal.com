@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 
 import { DeploymentsRepository } from "../deployments/deployments.repository";
 
@@ -12,27 +11,23 @@ type LicenseCheckResponse = {
 };
 @Injectable()
 export class DeploymentsService {
-  constructor(
-    private readonly deploymentsRepository: DeploymentsRepository,
-    private readonly configService: ConfigService
-  ) {}
+  constructor(private readonly deploymentsRepository: DeploymentsRepository) {}
 
   async checkLicense() {
-    if (this.configService.get("e2e")) {
-      return true;
-    }
-    let licenseKey = this.configService.get("api.licenseKey");
+    return true;
+
+    let licenseKey = "";
 
     if (!licenseKey) {
       /** We try to check on DB only if env is undefined */
       const deployment = await this.deploymentsRepository.getDeployment();
-      licenseKey = deployment?.licenseKey ?? undefined;
+      licenseKey = deployment?.licenseKey || "";
     }
 
     if (!licenseKey) {
       return false;
     }
-    const licenseKeyUrl = this.configService.get("api.licenseKeyUrl") + `?key=${licenseKey}`;
+    const licenseKeyUrl = "" + `?key=${licenseKey}`;
 
     const response = await fetch(licenseKeyUrl, { mode: "cors" });
     const data = (await response.json()) as LicenseCheckResponse;
