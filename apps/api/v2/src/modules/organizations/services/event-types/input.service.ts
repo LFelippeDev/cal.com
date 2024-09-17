@@ -7,7 +7,7 @@ import {
 } from "@calcom/platform-types";
 import { SchedulingType } from "@calcom/prisma/client";
 
-import { InputEventTypesService_2024_06_14 } from "../../../../event-types/event-types_2024_06_14/services/input-event-types.service";
+import { InputEventTypesService_2024_06_14 } from "../../../../ee/event-types/event-types_2024_06_14/services/input-event-types.service";
 import { OrganizationsEventTypesRepository } from "../../../organizations/repositories/organizations-event-types.repository";
 import { OrganizationsTeamsRepository } from "../../../organizations/repositories/organizations-teams.repository";
 import { UsersRepository } from "../../../users/users.repository";
