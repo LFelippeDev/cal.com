@@ -1,10 +1,10 @@
-import appConfig from "@/config/app";
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ThrottlerGuard } from "@nestjs/throttler";
 
 import { AppController } from "./app.controller";
+import appConfig from "./config/app";
 import { AppLoggerMiddleware } from "./middleware/app.logger.middleware";
 import { RewriterMiddleware } from "./middleware/app.rewrites.middleware";
 import { JsonBodyMiddleware } from "./middleware/body/json.body.middleware";
