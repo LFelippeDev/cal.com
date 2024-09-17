@@ -11,6 +11,7 @@ import {
   SUCCESS_STATUS,
 } from "@calcom/platform-constants";
 
+import { getEnv } from "../../../env";
 import { CredentialsRepository } from "../../../modules/credentials/credentials.repository";
 import { SelectedCalendarsRepository } from "../../../modules/selected-calendars/selected-calendars.repository";
 import { TokensRepository } from "../../../modules/tokens/tokens.repository";
@@ -19,7 +20,8 @@ import { CalendarsService } from "../../calendars/services/calendars.service";
 
 @Injectable()
 export class OutlookService implements OAuthCalendarApp {
-  private redirectUri = `calendars/${OFFICE_365_CALENDAR}/save`;
+  private apiUrl = getEnv("API_URL");
+  private redirectUri = `${this.apiUrl}/calendars/${OFFICE_365_CALENDAR}/save`;
 
   constructor(
     private readonly calendarsService: CalendarsService,

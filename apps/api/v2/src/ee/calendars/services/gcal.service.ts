@@ -12,6 +12,7 @@ import { z } from "zod";
 
 import { GOOGLE_CALENDAR_TYPE, SUCCESS_STATUS } from "@calcom/platform-constants";
 
+import { getEnv } from "../../../env";
 import { AppsRepository } from "../../../modules/apps/apps.repository";
 import { CredentialsRepository } from "../../../modules/credentials/credentials.repository";
 import { SelectedCalendarsRepository } from "../../../modules/selected-calendars/selected-calendars.repository";
@@ -26,7 +27,8 @@ const CALENDAR_SCOPES = [
 
 @Injectable()
 export class GoogleCalendarService implements OAuthCalendarApp {
-  private redirectUri = "/gcal/oauth/save";
+  private apiUrl = getEnv("API_URL");
+  private redirectUri = `${this.apiUrl}/gcal/oauth/save`;
   private gcalResponseSchema = z.object({ client_id: z.string(), client_secret: z.string() });
   private logger = new Logger("GcalService");
 
@@ -45,7 +47,7 @@ export class GoogleCalendarService implements OAuthCalendarApp {
   ): Promise<{ status: typeof SUCCESS_STATUS; data: { authUrl: string } }> {
     const accessToken = authorization.replace("Bearer ", "");
     const origin = req.get("origin") ?? req.get("host");
-    const redirectUrl = await await this.getCalendarRedirectUrl(accessToken, origin ?? "", redir);
+    const redirectUrl = await this.getCalendarRedirectUrl(accessToken, origin ?? "", redir);
 
     return { status: SUCCESS_STATUS, data: { authUrl: redirectUrl } };
   }

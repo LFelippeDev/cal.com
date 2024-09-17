@@ -16,6 +16,7 @@ import { Request } from "express";
 
 import { APPS_READ, GOOGLE_CALENDAR_TYPE, SUCCESS_STATUS } from "@calcom/platform-constants";
 
+import { getEnv } from "../../env";
 import { API_VERSIONS_VALUES } from "../../lib/api-versions";
 import { GCalService } from "../../modules/apps/services/gcal.service";
 import { GetUser } from "../../modules/auth/decorators/get-user/get-user.decorator";
@@ -46,7 +47,8 @@ export class GcalController {
     private readonly calendarsService: CalendarsService
   ) {}
 
-  private redirectUri = "/gcal/oauth/save";
+  private apiUrl = getEnv("API_URL");
+  private redirectUri = `${this.apiUrl}/gcal/oauth/save`;
 
   @Get("/oauth/auth-url")
   @HttpCode(HttpStatus.OK)
