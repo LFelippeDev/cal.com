@@ -1,6 +1,6 @@
-import { getEnv } from "@/env";
 import { Injectable } from "@nestjs/common";
 
+import { getEnv } from "../../env";
 import { DeploymentsRepository } from "../deployments/deployments.repository";
 
 type LicenseCheckResponse = {
