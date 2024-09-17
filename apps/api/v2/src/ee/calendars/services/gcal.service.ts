@@ -1,13 +1,16 @@
-import { Logger, NotFoundException } from "@nestjs/common";
-import { BadRequestException, UnauthorizedException } from "@nestjs/common";
-import { Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { Request } from "express";
 import { google } from "googleapis";
 import { z } from "zod";
 
-import { SUCCESS_STATUS, GOOGLE_CALENDAR_TYPE } from "@calcom/platform-constants";
+import { GOOGLE_CALENDAR_TYPE, SUCCESS_STATUS } from "@calcom/platform-constants";
 
 import { AppsRepository } from "../../../modules/apps/apps.repository";
 import { CredentialsRepository } from "../../../modules/credentials/credentials.repository";
@@ -23,12 +26,11 @@ const CALENDAR_SCOPES = [
 
 @Injectable()
 export class GoogleCalendarService implements OAuthCalendarApp {
-  private redirectUri = `${this.config.get("api.url")}/gcal/oauth/save`;
+  private redirectUri = "/gcal/oauth/save";
   private gcalResponseSchema = z.object({ client_id: z.string(), client_secret: z.string() });
   private logger = new Logger("GcalService");
 
   constructor(
-    private readonly config: ConfigService,
     private readonly appsRepository: AppsRepository,
     private readonly credentialRepository: CredentialsRepository,
     private readonly calendarsService: CalendarsService,

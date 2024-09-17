@@ -2,22 +2,17 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
-  Logger,
   Query,
   Redirect,
   Req,
   UnauthorizedException,
   UseGuards,
-  Headers,
 } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { ApiTags as DocsTags } from "@nestjs/swagger";
-import { Prisma } from "@prisma/client";
 import { Request } from "express";
-import { google } from "googleapis";
-import { z } from "zod";
 
 import { APPS_READ, GOOGLE_CALENDAR_TYPE, SUCCESS_STATUS } from "@calcom/platform-constants";
 
@@ -28,8 +23,6 @@ import { Permissions } from "../../modules/auth/decorators/permissions/permissio
 import { ApiAuthGuard } from "../../modules/auth/guards/api-auth/api-auth.guard";
 import { PermissionsGuard } from "../../modules/auth/guards/permissions/permissions.guard";
 import { CredentialsRepository } from "../../modules/credentials/credentials.repository";
-import { SelectedCalendarsRepository } from "../../modules/selected-calendars/selected-calendars.repository";
-import { TokensRepository } from "../../modules/tokens/tokens.repository";
 import { CalendarsService } from "../calendars/services/calendars.service";
 import { GcalAuthUrlOutput } from "./outputs/auth-url.output";
 import { GcalCheckOutput } from "./outputs/check.output";
@@ -47,18 +40,13 @@ const CALENDAR_SCOPES = [
 })
 @DocsTags("Google Calendar")
 export class GcalController {
-  private readonly logger = new Logger("Platform Gcal Provider");
-
   constructor(
     private readonly credentialRepository: CredentialsRepository,
-    private readonly tokensRepository: TokensRepository,
-    private readonly selectedCalendarsRepository: SelectedCalendarsRepository,
-    private readonly config: ConfigService,
     private readonly gcalService: GCalService,
     private readonly calendarsService: CalendarsService
   ) {}
 
-  private redirectUri = `${this.config.get("api.url")}/gcal/oauth/save`;
+  private redirectUri = "/gcal/oauth/save";
 
   @Get("/oauth/auth-url")
   @HttpCode(HttpStatus.OK)
@@ -83,7 +71,7 @@ export class GcalController {
   @Redirect(undefined, 301)
   @HttpCode(HttpStatus.OK)
   async save(@Query("state") state: string, @Query("code") code: string): Promise<GcalSaveRedirectOutput> {
-    const url = new URL(this.config.get("api.url") + "/calendars/google/save");
+    const url = new URL("/calendars/google/save");
     url.searchParams.append("code", code);
     url.searchParams.append("state", state);
     return { url: url.href };

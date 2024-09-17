@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 
 import { AppsRepository } from "../../modules/apps/apps.repository";
 import { GCalService } from "../../modules/apps/services/gcal.service";
@@ -17,7 +16,6 @@ import { GcalController } from "./gcal.controller";
   imports: [PrismaModule, TokensModule, OAuthClientModule],
   providers: [
     AppsRepository,
-    ConfigService,
     CredentialsRepository,
     SelectedCalendarsRepository,
     GCalService,

@@ -1,16 +1,14 @@
 import type { Calendar as OfficeCalendar } from "@microsoft/microsoft-graph-types-beta";
-import { BadRequestException, UnauthorizedException } from "@nestjs/common";
-import { Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { Request } from "express";
 import { stringify } from "querystring";
 import { z } from "zod";
 
 import {
-  SUCCESS_STATUS,
   OFFICE_365_CALENDAR,
   OFFICE_365_CALENDAR_ID,
   OFFICE_365_CALENDAR_TYPE,
+  SUCCESS_STATUS,
 } from "@calcom/platform-constants";
 
 import { CredentialsRepository } from "../../../modules/credentials/credentials.repository";
@@ -21,10 +19,9 @@ import { CalendarsService } from "../../calendars/services/calendars.service";
 
 @Injectable()
 export class OutlookService implements OAuthCalendarApp {
-  private redirectUri = `${this.config.get("api.url")}/calendars/${OFFICE_365_CALENDAR}/save`;
+  private redirectUri = `calendars/${OFFICE_365_CALENDAR}/save`;
 
   constructor(
-    private readonly config: ConfigService,
     private readonly calendarsService: CalendarsService,
     private readonly credentialRepository: CredentialsRepository,
     private readonly tokensRepository: TokensRepository,
