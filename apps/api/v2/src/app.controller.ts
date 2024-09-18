@@ -5,7 +5,7 @@ import { getEnv } from "./env";
 
 @Controller()
 @DocsTags("Health - development only")
-// @DocsExcludeController(getEnv("NODE_ENV") === "production")
+@DocsExcludeController(getEnv("NODE_ENV") === "production")
 export class AppController {
   @Get("health")
   @Version(VERSION_NEUTRAL)
@@ -13,9 +13,9 @@ export class AppController {
     return "OK";
   }
 
-  @Get("/")
+  @Get()
   @Version(VERSION_NEUTRAL)
-  getRoot(): JSON {
-    return JSON.parse(`{"message":"Welcome to Cal.com API V2 - docs are at https://developer.cal.com/api}`);
+  getRoot(): string {
+    return `{"message":"Welcome to Cal.com API V2 - docs are at https://developer.cal.com/api}`;
   }
 }
