@@ -99,20 +99,24 @@ export class BookingsController {
     @Query() queryParams: GetBookingsInput
   ): Promise<GetBookingsOutput> {
     const { filters, cursor, limit } = queryParams;
-    const bookings = await getAllUserBookings({
-      bookingListingByStatus: filters.status,
-      skip: cursor ?? 0,
-      take: limit ?? 10,
-      filters,
-      ctx: {
-        user: { email: user.email, id: user.id },
-        prisma: this.prismaReadService.prisma as unknown as PrismaClient,
-      },
-    });
+    // const bookings = await getAllUserBookings({
+    //   bookingListingByStatus: filters.status,
+    //   skip: cursor ?? 0,
+    //   take: limit ?? 10,
+    //   filters,
+    //   ctx: {
+    //     user: { email: user.email, id: user.id },
+    //     prisma: this.prismaReadService.prisma as unknown as PrismaClient,
+    //   },
+    // });
 
     return {
       status: SUCCESS_STATUS,
-      data: bookings,
+      data: {
+        bookings: [],
+        recurringInfo: false,
+        nextCursor: false,
+      },
     };
   }
 
