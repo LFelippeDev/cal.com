@@ -14,7 +14,6 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { EndpointsModule } from "./modules/endpoints.module";
 import { JwtModule } from "./modules/jwt/jwt.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
-import { SupabaseModule } from "./modules/supabase/supabase.module";
 
 @Module({
   imports: [
@@ -27,7 +26,6 @@ import { SupabaseModule } from "./modules/supabase/supabase.module";
     EndpointsModule,
     AuthModule,
     JwtModule,
-    SupabaseModule,
   ],
   controllers: [AppController],
   providers: [
