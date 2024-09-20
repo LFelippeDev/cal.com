@@ -8,8 +8,8 @@ import { TokensRepository } from "../../modules/tokens/tokens.repository";
 import { BookingsController } from "../bookings/controllers/bookings.controller";
 
 @Module({
-  // imports: [TokensModule, BillingModule],
-  // providers: [TokensRepository, OAuthFlowService, OAuthClientRepository],
+  imports: [TokensModule, BillingModule],
+  providers: [TokensRepository, OAuthFlowService, OAuthClientRepository],
   controllers: [BookingsController],
 })
 export class BookingsModule {}

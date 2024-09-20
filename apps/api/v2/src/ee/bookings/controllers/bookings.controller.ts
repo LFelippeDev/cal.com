@@ -18,7 +18,13 @@ import { User } from "@prisma/client";
 import { Request } from "express";
 import { NextApiRequest } from "next/types";
 
-import { BOOKING_READ, BOOKING_WRITE, SUCCESS_STATUS, X_CAL_CLIENT_ID } from "@calcom/platform-constants";
+import {
+  BOOKING_READ,
+  BOOKING_WRITE,
+  ERROR_STATUS,
+  SUCCESS_STATUS,
+  X_CAL_CLIENT_ID,
+} from "@calcom/platform-constants";
 import {
   BookingResponse,
   HttpError,
@@ -95,23 +101,21 @@ export class BookingsController {
     @Query() queryParams: GetBookingsInput
   ): Promise<GetBookingsOutput> {
     const { filters, cursor, limit } = queryParams;
+
+    if (!filters.status) {
+      return {
+        status: ERROR_STATUS,
+        data: null,
+      };
+    }
+
     const bookings = (await supabase
       .from("Booking")
       .select("*")
       .eq("userId", user.id)
+      .eq("status", filters.status)
       .eq("userPrimaryEmail", user.email)
       .limit(limit ?? 10)) as any;
-
-    // await getAllUserBookings({
-    //   bookingListingByStatus: filters.status,
-    // skip: cursor ?? 0,
-    // take: limit ?? 10,
-    // filters,
-    //   ctx: {
-    //     user: { email: user.email, id: user.id },
-    //     // prisma: this.prismaReadService.prisma as unknown as PrismaClient,
-    //   },
-    // });
 
     return {
       status: SUCCESS_STATUS,
