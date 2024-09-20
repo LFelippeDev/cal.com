@@ -1,6 +1,7 @@
-import { supabase } from "@/config/supabase";
 import { API_VERSIONS_VALUES } from "@/lib/api-versions";
 import { Controller, Get } from "@nestjs/common";
+
+import { supabase } from "../../config/supabase";
 
 @Controller({
   path: "/v2/teste",
