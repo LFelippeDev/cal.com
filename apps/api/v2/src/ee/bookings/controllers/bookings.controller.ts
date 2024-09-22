@@ -89,37 +89,37 @@ export class BookingsController {
     private readonly billingService: BillingService
   ) {}
 
-  // @Get("/")
+  @Get("/")
   // // @UseGuards(ApiAuthGuard)
   // // @Permissions([BOOKING_READ])
-  // @ApiQuery({ name: "filters[status]", enum: Status, required: true })
-  // @ApiQuery({ name: "limit", type: "number", required: false })
-  // @ApiQuery({ name: "cursor", type: "number", required: false })
-  // async getBookings(@Query() queryParams: GetBookingsInput): Promise<GetBookingsOutput> {
-  //   const { filters, cursor, limit } = queryParams;
+  @ApiQuery({ name: "filters[status]", enum: Status, required: true })
+  @ApiQuery({ name: "limit", type: "number", required: false })
+  @ApiQuery({ name: "cursor", type: "number", required: false })
+  async getBookings(@Query() queryParams: GetBookingsInput): Promise<GetBookingsOutput> {
+    const { filters, cursor, limit } = queryParams;
 
-  //   if (!filters.status) {
-  //     return {
-  //       status: ERROR_STATUS,
-  //       data: null,
-  //     };
-  //   }
+    //   if (!filters.status) {
+    //     return {
+    //       status: ERROR_STATUS,
+    //       data: null,
+    //     };
+    //   }
 
-  //   const bookings = (await supabase
-  //     .from("Booking")
-  //     .select("*")
-  //     .eq("status", filters.status)
-  //     .limit(limit ?? 10)) as any;
+    const bookings = (await supabase
+      .from("Booking")
+      .select("*")
+      .eq("status", filters.status)
+      .limit(limit ?? 10)) as any;
 
-  //   return {
-  //     status: SUCCESS_STATUS,
-  //     data: {
-  //       bookings,
-  //       recurringInfo: false as any,
-  //       nextCursor: false as any,
-  //     },
-  //   };
-  // }
+    return {
+      status: SUCCESS_STATUS,
+      data: {
+        bookings,
+        recurringInfo: false as any,
+        nextCursor: false as any,
+      },
+    };
+  }
 
   @Get("/:bookingUid")
   async getBooking(@Param("bookingUid") bookingUid: string): Promise<GetBookingOutput> {
