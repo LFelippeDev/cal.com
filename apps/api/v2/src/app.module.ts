@@ -13,7 +13,6 @@ import { RequestIdMiddleware } from "./middleware/request-ids/request-id.middlew
 import { AuthModule } from "./modules/auth/auth.module";
 import { EndpointsModule } from "./modules/endpoints.module";
 import { JwtModule } from "./modules/jwt/jwt.module";
-import { PrismaModule } from "./modules/prisma/prisma.module";
 
 @Module({
   imports: [
@@ -22,7 +21,6 @@ import { PrismaModule } from "./modules/prisma/prisma.module";
       isGlobal: true,
       load: [appConfig],
     }),
-    PrismaModule,
     EndpointsModule,
     AuthModule,
     JwtModule,
