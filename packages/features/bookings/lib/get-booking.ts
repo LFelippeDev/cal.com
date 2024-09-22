@@ -2,7 +2,6 @@ import type { Prisma } from "@prisma/client";
 import type { z } from "zod";
 
 import { bookingResponsesDbSchema } from "@calcom/features/bookings/lib/getBookingResponsesSchema";
-import slugify from "@calcom/lib/slugify";
 import type { PrismaClient } from "@calcom/prisma";
 import prisma from "@calcom/prisma";
 
@@ -19,31 +18,6 @@ type BookingSelect = {
 };
 
 // Backward Compatibility for booking created before we had managed booking questions
-function getResponsesFromOldBooking(
-  rawBooking: Prisma.BookingGetPayload<{
-    select: BookingSelect;
-  }>
-) {
-  const customInputs = rawBooking.customInputs || {};
-  const responses = Object.keys(customInputs).reduce((acc, label) => {
-    acc[slugify(label) as keyof typeof acc] = customInputs[label as keyof typeof customInputs];
-    return acc;
-  }, {});
-  return {
-    // It is possible to have no attendees in a booking when the booking is cancelled.
-    name: rawBooking.attendees[0]?.name || "Nameless",
-    email: rawBooking.attendees[0]?.email || "",
-    guests: rawBooking.attendees.slice(1).map((attendee) => {
-      return attendee.email;
-    }),
-    notes: rawBooking.description || "",
-    location: {
-      value: rawBooking.location || "",
-      optionValue: rawBooking.location || "",
-    },
-    ...responses,
-  };
-}
 
 async function getBooking(prisma: PrismaClient, uid: string, isSeatedEvent?: boolean) {
   const rawBooking = await prisma.booking.findFirst({

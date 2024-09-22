@@ -1,43 +1,48 @@
+import { supabase } from "@/config/supabase";
 import {
-  Body,
   Controller,
-  Get,
+  Post,
+  Logger,
+  Req,
+  InternalServerErrorException,
+  Body,
   Headers,
   HttpException,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
   Param,
-  Post,
+  Get,
   Query,
-  Req,
+  NotFoundException,
   UseGuards,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { ApiQuery, ApiTags as DocsTags } from "@nestjs/swagger";
 import { User } from "@prisma/client";
 import { Request } from "express";
 import { NextApiRequest } from "next/types";
+import { v4 as uuidv4 } from "uuid";
 
+import { bookingResponsesDbSchema } from "@calcom/features/bookings/lib/getBookingResponsesSchema";
+import slugify from "@calcom/lib/slugify";
+import { X_CAL_CLIENT_ID } from "@calcom/platform-constants";
+import { BOOKING_READ, SUCCESS_STATUS, BOOKING_WRITE } from "@calcom/platform-constants";
 import {
-  BOOKING_READ,
-  BOOKING_WRITE,
-  ERROR_STATUS,
-  SUCCESS_STATUS,
-  X_CAL_CLIENT_ID,
-} from "@calcom/platform-constants";
-import {
+  handleNewBooking,
   BookingResponse,
   HttpError,
-  getBookingForReschedule,
-  handleCancelBooking,
-  handleInstantMeeting,
-  handleNewBooking,
   handleNewRecurringBooking,
+  handleInstantMeeting,
+  handleMarkNoShow,
+  getAllUserBookings,
+  handleCancelBooking,
+  ErrorCode,
 } from "@calcom/platform-libraries";
-import { ApiResponse, CancelBookingInput, GetBookingsInput, Status } from "@calcom/platform-types";
+import { GetBookingsInput, CancelBookingInput, Status } from "@calcom/platform-types";
+import { ApiResponse } from "@calcom/platform-types";
+import { PrismaClient } from "@calcom/prisma";
 
-import { supabase } from "../../../config/supabase";
+import { hashAPIKey, isApiKey, stripApiKey } from "../../../lib/api-key";
 import { API_VERSIONS_VALUES } from "../../../lib/api-versions";
+import { ApiKeyRepository } from "../../../modules/api-key/api-key-repository";
 import { GetUser } from "../../../modules/auth/decorators/get-user/get-user.decorator";
 import { Permissions } from "../../../modules/auth/decorators/permissions/permissions.decorator";
 import { ApiAuthGuard } from "../../../modules/auth/guards/api-auth/api-auth.guard";
@@ -45,12 +50,12 @@ import { PermissionsGuard } from "../../../modules/auth/guards/permissions/permi
 import { BillingService } from "../../../modules/billing/services/billing.service";
 import { OAuthClientRepository } from "../../../modules/oauth-clients/oauth-client.repository";
 import { OAuthFlowService } from "../../../modules/oauth-clients/services/oauth-flow.service";
-import { CreateBookingInput } from "../inputs/create-booking.input";
-import { CreateRecurringBookingInput } from "../inputs/create-recurring-booking.input";
-import { MarkNoShowInput } from "../inputs/mark-no-show.input";
-import { GetBookingOutput } from "../outputs/get-booking.output";
-import { GetBookingsOutput } from "../outputs/get-bookings.output";
-import { MarkNoShowOutput } from "../outputs/mark-no-show.output";
+import { CreateBookingInput } from "../../bookings/inputs/create-booking.input";
+import { CreateRecurringBookingInput } from "../../bookings/inputs/create-recurring-booking.input";
+import { MarkNoShowInput } from "../../bookings/inputs/mark-no-show.input";
+import { GetBookingOutput } from "../../bookings/outputs/get-booking.output";
+import { GetBookingsOutput } from "../../bookings/outputs/get-bookings.output";
+import { MarkNoShowOutput } from "../../bookings/outputs/mark-no-show.output";
 
 type BookingRequest = Request & {
   userId?: number;
@@ -86,54 +91,59 @@ export class BookingsController {
   constructor(
     private readonly oAuthFlowService: OAuthFlowService,
     private readonly oAuthClientRepository: OAuthClientRepository,
-    private readonly billingService: BillingService
+    private readonly billingService: BillingService,
+    private readonly config: ConfigService,
+    private readonly apiKeyRepository: ApiKeyRepository
   ) {}
 
-  @Get("/")
-  // // @UseGuards(ApiAuthGuard)
-  // // @Permissions([BOOKING_READ])
-  @ApiQuery({ name: "filters[status]", enum: Status, required: true })
-  @ApiQuery({ name: "limit", type: "number", required: false })
-  @ApiQuery({ name: "cursor", type: "number", required: false })
-  async getBookings(@Query() queryParams: GetBookingsInput): Promise<GetBookingsOutput> {
-    const { filters, cursor, limit } = queryParams;
+  // @Get("/")
+  // @UseGuards(ApiAuthGuard)
+  // @Permissions([BOOKING_READ])
+  // @ApiQuery({ name: "filters[status]", enum: Status, required: true })
+  // @ApiQuery({ name: "limit", type: "number", required: false })
+  // @ApiQuery({ name: "cursor", type: "number", required: false })
+  // async getBookings(
+  //   @GetUser() user: User,
+  //   @Query() queryParams: GetBookingsInput
+  // ): Promise<GetBookingsOutput> {
+  //   const { filters, cursor, limit } = queryParams;
+  //   const bookings = await getAllUserBookings({
+  //     bookingListingByStatus: filters.status,
+  //     skip: cursor ?? 0,
+  //     take: limit ?? 10,
+  //     filters,
+  //     ctx: {
+  //       user: { email: user.email, id: user.id },
+  //       prisma: this.prismaReadService.prisma as unknown as PrismaClient,
+  //     },
+  //   });
 
-    //   if (!filters.status) {
-    //     return {
-    //       status: ERROR_STATUS,
-    //       data: null,
-    //     };
-    //   }
-
-    const bookings = (await supabase
-      .from("Booking")
-      .select("*")
-      .eq("status", filters.status)
-      .limit(limit ?? 10)) as any;
-
-    return {
-      status: SUCCESS_STATUS,
-      data: {
-        bookings,
-        recurringInfo: false as any,
-        nextCursor: false as any,
-      },
-    };
-  }
+  //   return {
+  //     status: SUCCESS_STATUS,
+  //     data: bookings,
+  //   };
+  // }
 
   @Get("/:bookingUid")
   async getBooking(@Param("bookingUid") bookingUid: string): Promise<GetBookingOutput> {
-    const booking = await this.getBookingInfo(bookingUid);
+    const { bookingInfo } = await this.getBookingInfo(bookingUid);
+    if (!bookingInfo) {
+      throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
+    }
 
     return {
       status: SUCCESS_STATUS,
-      data: booking,
+      data: bookingInfo,
     };
   }
 
   @Get("/:bookingUid/reschedule")
   async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
-    const booking = await this.getBookingInfo(bookingUid);
+    const booking = await this.getBookingReschedule(bookingUid);
+
+    if (!booking) {
+      throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
+    }
 
     return {
       status: SUCCESS_STATUS,
@@ -234,8 +244,15 @@ export class BookingsController {
   // ): Promise<ApiResponse<BookingResponse[]>> {
   //   const oAuthClientId = clientId?.toString();
   //   try {
+  //     const recurringEventId = uuidv4();
+  //     for (const recurringEvent of req.body) {
+  //       if (!recurringEvent.recurringEventId) {
+  //         recurringEvent.recurringEventId = recurringEventId;
+  //       }
+  //     }
+
   //     const createdBookings: BookingResponse[] = await handleNewRecurringBooking(
-  //       await this.createNextApiBookingRequest(req, oAuthClientId)
+  //       await this.createNextApiRecurringBookingRequest(req, oAuthClientId)
   //     );
 
   //     createdBookings.forEach(async (booking) => {
@@ -290,26 +307,141 @@ export class BookingsController {
   //   throw new InternalServerErrorException("Could not create instant booking.");
   // }
 
-  async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"]> {
-    const { data: booking, error } = (await supabase
-      .from("Booking")
-      .select("*")
-      .eq("uid", bookingUid)
-      .limit(1)
-      .single()) as any;
+  getResponsesFromOldBooking(rawBooking: any): any {
+    const customInputs = rawBooking.customInputs || {};
+    const responses = Object.keys(customInputs).reduce((acc: { [key: string]: any }, label) => {
+      acc[slugify(label)] = customInputs[label as keyof typeof customInputs];
+      return acc;
+    }, {});
+    return {
+      // It is possible to have no attendees in a booking when the booking is cancelled.
+      name: rawBooking.attendees[0]?.name || "Nameless",
+      email: rawBooking.attendees[0]?.email || "",
+      guests: rawBooking.attendees.slice(1).map((attendee: any) => {
+        return attendee.email;
+      }),
+      notes: rawBooking.description || "",
+      location: {
+        value: rawBooking.location || "",
+        optionValue: rawBooking.location || "",
+      },
+      ...responses,
+    };
+  }
 
-    if (!booking || error) {
-      throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
+  getBookingWithResponses(booking: any, isSeatedEvent?: boolean): any {
+    return {
+      ...booking,
+      responses: isSeatedEvent
+        ? bookingResponsesDbSchema.parse(booking.responses || {})
+        : bookingResponsesDbSchema.parse(booking.responses || this.getResponsesFromOldBooking(booking)),
+    } as any;
+  }
+
+  private async getBookingInfo(
+    bookingUid: string
+  ): Promise<{ bookingInfo: GetBookingOutput["data"] | null }> {
+    const { data, error } = await supabase.from("Bookings").select("*").eq("uid", bookingUid).single();
+
+    if (error || !data) {
+      return { bookingInfo: null };
+    }
+
+    return { bookingInfo: null };
+  }
+
+  private async getEspecificBooking(uid: string, isSeatedEvent?: boolean): Promise<any> {
+    const { data: rawBooking } = await supabase.from("Bookings").select("*").eq("uid", uid).single();
+
+    if (!rawBooking) {
+      return rawBooking;
+    }
+
+    const booking = this.getBookingWithResponses(rawBooking, isSeatedEvent);
+
+    if (booking) {
+      // @NOTE: had to do this because Server side cant return [Object objects]
+      // probably fixable with json.stringify -> json.parse
+      booking["startTime"] = (booking?.startTime as Date)?.toISOString() as unknown as Date;
+      booking["endTime"] = (booking?.endTime as Date)?.toISOString() as unknown as Date;
     }
 
     return booking;
   }
 
+  private async getBookingReschedule(uid: string, userId?: number): Promise<any> {
+    let rescheduleUid: string | null = null;
+    const { data: theBooking } = (await supabase.from("Bookings").select("*").eq("uid", uid).single()) as any;
+
+    let bookingSeatReferenceUid: number | null = null;
+
+    let attendeeEmail: string | null = null;
+    let bookingSeatData = null;
+
+    if (!theBooking) {
+      const { data: bookingSeat } = (await supabase
+        .from("BookingSeat")
+        .select("data, id, booking, attendee")
+        .eq("uid", uid)
+        .single()) as any;
+
+      if (bookingSeat) {
+        bookingSeatData = bookingSeat.data;
+        bookingSeatReferenceUid = bookingSeat.id;
+        rescheduleUid = bookingSeat.booking.uid;
+        attendeeEmail = bookingSeat.attendee.email;
+      }
+    }
+
+    // If we have the booking and not bookingSeat, we need to make sure the booking belongs to the userLoggedIn
+    // Otherwise, we return null here.
+    let hasOwnershipOnBooking = false;
+    if (theBooking && theBooking?.eventType?.seatsPerTimeSlot && bookingSeatReferenceUid === null) {
+      const isOwnerOfBooking = theBooking.userId === userId;
+
+      const isHostOfEventType = theBooking?.eventType?.hosts.some((host: any) => host.userId === userId);
+
+      const isUserIdInBooking = theBooking.userId === userId;
+
+      if (!isOwnerOfBooking && !isHostOfEventType && !isUserIdInBooking) return null;
+      hasOwnershipOnBooking = true;
+    }
+
+    // If we don't have a booking and no rescheduleUid, the ID is invalid,
+    // and we return null here.
+    if (!theBooking && !rescheduleUid) return null;
+
+    const booking = await this.getEspecificBooking(rescheduleUid || uid, !!bookingSeatReferenceUid);
+
+    if (!booking) return null;
+
+    if (bookingSeatReferenceUid) {
+      booking["description"] = bookingSeatData?.description ?? null;
+      booking["responses"] = bookingResponsesDbSchema.parse(bookingSeatData?.responses ?? {});
+    }
+    return {
+      ...booking,
+      attendees: rescheduleUid
+        ? booking.attendees.filter((attendee: any) => attendee.email === attendeeEmail)
+        : hasOwnershipOnBooking
+        ? []
+        : booking.attendees,
+    };
+  }
+
   // private async getOwnerId(req: Request): Promise<number | undefined> {
   //   try {
-  //     const accessToken = req.get("Authorization")?.replace("Bearer ", "");
-  //     if (accessToken) {
-  //       return this.oAuthFlowService.getOwnerId(accessToken);
+  //     const bearerToken = req.get("Authorization")?.replace("Bearer ", "");
+  //     if (bearerToken) {
+  //       if (isApiKey(bearerToken, this.config.get<string>("api.apiKeyPrefix") ?? "cal_")) {
+  //         const strippedApiKey = stripApiKey(bearerToken, this.config.get<string>("api.keyPrefix"));
+  //         const apiKeyHash = hashAPIKey(strippedApiKey);
+  //         const keyData = await this.apiKeyRepository.getApiKeyFromHash(apiKeyHash);
+  //         return keyData?.userId;
+  //       } else {
+  //         // Access Token
+  //         return this.oAuthFlowService.getOwnerId(bearerToken);
+  //       }
   //     }
   //   } catch (err) {
   //     this.logger.error(err);
@@ -349,6 +481,19 @@ export class BookingsController {
   //   return req as unknown as NextApiRequest & { userId?: number } & OAuthRequestParams;
   // }
 
+  // private async createNextApiRecurringBookingRequest(
+  //   req: BookingRequest,
+  //   oAuthClientId?: string,
+  //   platformBookingLocation?: string
+  // ): Promise<NextApiRequest & { userId?: number } & OAuthRequestParams> {
+  //   const userId = (await this.getOwnerId(req)) ?? -1;
+  //   const oAuthParams = oAuthClientId
+  //     ? await this.getOAuthClientsParams(oAuthClientId)
+  //     : DEFAULT_PLATFORM_PARAMS;
+  //   Object.assign(req, { userId, ...oAuthParams, platformBookingLocation });
+  //   return req as unknown as NextApiRequest & { userId?: number } & OAuthRequestParams;
+  // }
+
   // private handleBookingErrors(
   //   err: Error | HttpError | unknown,
   //   type?: "recurring" | `instant` | "no-show"
@@ -364,6 +509,9 @@ export class BookingsController {
 
   //   if (err instanceof Error) {
   //     const error = err as Error;
+  //     if (Object.values(ErrorCode).includes(error.message as unknown as ErrorCode)) {
+  //       throw new HttpException(error.message, 400);
+  //     }
   //     throw new InternalServerErrorException(error?.message ?? errMsg);
   //   }
 
