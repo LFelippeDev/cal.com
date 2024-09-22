@@ -291,13 +291,18 @@ export class BookingsController {
   // }
 
   async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"]> {
-    const bookings = (await supabase.from("Booking").select("*").eq("uid", bookingUid)) as any;
+    const { data: booking, error } = (await supabase
+      .from("Booking")
+      .select("*")
+      .eq("uid", bookingUid)
+      .limit(1)
+      .single()) as any;
 
-    if (bookings.length === 0) {
+    if (!booking || error) {
       throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
     }
 
-    return bookings[0];
+    return booking;
   }
 
   // private async getOwnerId(req: Request): Promise<number | undefined> {
