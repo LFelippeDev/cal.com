@@ -24,7 +24,6 @@ import {
   HttpError,
   getAllUserBookings,
   getBookingForReschedule,
-  getBookingInfo,
   handleCancelBooking,
   handleInstantMeeting,
   handleMarkNoShow,
@@ -115,7 +114,7 @@ export class BookingsController {
 
   @Get("/:bookingUid")
   async getBooking(@Param("bookingUid") bookingUid: string): Promise<GetBookingOutput> {
-    const { bookingInfo } = await getBookingInfo(bookingUid);
+    const bookingInfo = await this.getBookingInfo(bookingUid);
 
     if (!bookingInfo) {
       throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
@@ -123,7 +122,7 @@ export class BookingsController {
 
     return {
       status: SUCCESS_STATUS,
-      data: bookingInfo as GetBookingOutput["data"],
+      data: bookingInfo,
     };
   }
 
@@ -288,6 +287,19 @@ export class BookingsController {
       this.handleBookingErrors(err, "instant");
     }
     throw new InternalServerErrorException("Could not create instant booking.");
+  }
+
+  private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"]> {
+    const { data: bookingInfo, error } = await supabase
+      .from("Bookings")
+      .select("*")
+      .eq("uid", uid)
+      .limit(1)
+      .single();
+
+    if (error) return null;
+
+    return bookingInfo;
   }
 
   private async getOwnerId(req: Request): Promise<number | undefined> {

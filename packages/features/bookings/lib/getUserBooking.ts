@@ -8,8 +8,6 @@ const getUserBooking = async (uid: string) => {
     .limit(1)
     .single();
 
-  console.log("VASCO", { bookingInfo }, { error });
-
   if (error) return null;
 
   return bookingInfo;
