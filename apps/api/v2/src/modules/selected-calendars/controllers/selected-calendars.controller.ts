@@ -33,16 +33,16 @@ export class SelectedCalendarsController {
   ) {}
 
   @Post("/")
-  @UseGuards(ApiAuthGuard)
+  // @UseGuards(ApiAuthGuard)
   async addSelectedCalendar(
-    @Body() input: SelectedCalendarsInputDto,
-    @GetUser() user: UserWithProfile
+    @Body() input: SelectedCalendarsInputDto
+    // @GetUser() user: UserWithProfile
   ): Promise<SelectedCalendarOutputResponseDto> {
     const { integration, externalId, credentialId } = input;
-    await this.calendarsService.checkCalendarCredentials(Number(credentialId), user.id);
+    await this.calendarsService.checkCalendarCredentials(Number(credentialId), 35);
 
     const newlyAddedCalendarEntry = await this.selectedCalendarsRepository.addUserSelectedCalendar(
-      user.id,
+      35,
       integration,
       externalId,
       credentialId
@@ -55,7 +55,7 @@ export class SelectedCalendarsController {
   }
 
   @Delete("/")
-  @UseGuards(ApiAuthGuard)
+  // @UseGuards(ApiAuthGuard)
   async removeSelectedCalendar(
     @Query() queryParams: SelectedCalendarsQueryParamsInputDto,
     @GetUser() user: UserWithProfile

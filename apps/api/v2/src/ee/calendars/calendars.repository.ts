@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
+import { supabase } from "../../config/supabase";
+
 const credentialForCalendarRepositorySelect = Prisma.validator<Prisma.CredentialSelect>()({
   id: true,
   appId: true,
@@ -18,25 +20,22 @@ const credentialForCalendarRepositorySelect = Prisma.validator<Prisma.Credential
 
 @Injectable()
 export class CalendarsRepository {
-  // TODO: PrismaReadService
   async getCalendarCredentials(credentialId: number, userId: number) {
-    // return await this.dbRead.prisma.credential.findFirst({
-    //   where: {
-    //     id: credentialId,
-    //     userId,
-    //   },
-    //   select: {
-    //     ...credentialForCalendarRepositorySelect,
-    //     app: {
-    //       select: {
-    //         slug: true,
-    //         categories: true,
-    //         dirName: true,
-    //       },
-    //     },
-    //   },
-    // });
+    const { data, error } = await supabase
+      .from("Credential")
+      .select("*")
+      .eq("id", credentialId)
+      .eq("userId", userId)
+      .limit(1)
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
   }
+
   // TODO: PrismaWriteService
   async deleteCredentials(credentialId: number) {
     // return await this.dbWrite.prisma.credential.delete({

@@ -1,5 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
+import { supabase } from "../../config/supabase";
+
 @Injectable()
 export class SelectedCalendarsRepository {
   // TODO: PrismaWriteService
@@ -34,31 +36,32 @@ export class SelectedCalendarsRepository {
     //   },
     // });
   }
-  // TODO: PrismaWriteService
+
   async addUserSelectedCalendar(
     userId: number,
     integration: string,
     externalId: string,
     credentialId: number
   ) {
-    // return await this.dbWrite.prisma.selectedCalendar.upsert({
-    //   where: {
-    //     userId_integration_externalId: {
-    //       userId,
-    //       integration,
-    //       externalId,
-    //     },
-    //   },
-    //   create: {
-    //     userId,
-    //     integration,
-    //     externalId,
-    //     credentialId,
-    //   },
-    //   // already exists
-    //   update: {},
-    // });
+    return await supabase.from("SelectedCalendar").upsert({
+      where: {
+        userId_integration_externalId: {
+          userId,
+          integration,
+          externalId,
+        },
+      },
+      create: {
+        userId,
+        integration,
+        externalId,
+        credentialId,
+      },
+      // already exists
+      update: {},
+    });
   }
+
   // TODO: PrismaWriteService
   async removeUserSelectedCalendar(userId: number, integration: string, externalId: string) {
     // return await this.dbWrite.prisma.selectedCalendar.delete({
