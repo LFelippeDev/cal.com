@@ -32,7 +32,6 @@ import {
   handleNewRecurringBooking,
 } from "@calcom/platform-libraries";
 import { ApiResponse, CancelBookingInput, GetBookingsInput, Status } from "@calcom/platform-types";
-import { PrismaClient } from "@calcom/prisma";
 
 import { API_VERSIONS_VALUES } from "../../../lib/api-versions";
 import { GetUser } from "../../../modules/auth/decorators/get-user/get-user.decorator";

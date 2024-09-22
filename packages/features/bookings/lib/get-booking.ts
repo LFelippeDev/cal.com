@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import type { z } from "zod";
 
 import { bookingResponsesDbSchema } from "@calcom/features/bookings/lib/getBookingResponsesSchema";
+import { supabase } from "@calcom/lib/server/supabase";
 import slugify from "@calcom/lib/slugify";
 import type { PrismaClient } from "@calcom/prisma";
 import prisma from "@calcom/prisma";
@@ -116,57 +117,28 @@ export default getBooking;
 
 export const getBookingForReschedule = async (uid: string, userId?: number) => {
   let rescheduleUid: string | null = null;
-  const theBooking = await prisma.booking.findFirst({
-    where: {
-      uid,
-    },
-    select: {
-      id: true,
-      userId: true,
-      eventType: {
-        select: {
-          seatsPerTimeSlot: true,
-          hosts: {
-            select: {
-              userId: true,
-            },
-          },
-          owner: {
-            select: {
-              id: true,
-            },
-          },
-        },
-      },
-    },
-  });
+
+  const { data: theBooking, error } = await supabase
+    .from("Bookings")
+    .select("*")
+    .eq("uid", uid)
+    .limit(1)
+    .single();
+
   let bookingSeatReferenceUid: number | null = null;
 
   // If no booking is found via the uid, it's probably a booking seat
   // that its being rescheduled, which we query next.
   let attendeeEmail: string | null = null;
   let bookingSeatData: { description?: string; responses: Prisma.JsonValue } | null = null;
-  if (!theBooking) {
-    const bookingSeat = await prisma.bookingSeat.findFirst({
-      where: {
-        referenceUid: uid,
-      },
-      select: {
-        id: true,
-        attendee: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        data: true,
-        booking: {
-          select: {
-            uid: true,
-          },
-        },
-      },
-    });
+  if (!theBooking || error) {
+    const { data: bookingSeat } = await supabase
+      .from("BookingSeat")
+      .select("*")
+      .eq("referenceUid", uid)
+      .limit(1)
+      .single();
+
     if (bookingSeat) {
       bookingSeatData = bookingSeat.data as unknown as { description?: string; responses: Prisma.JsonValue };
       bookingSeatReferenceUid = bookingSeat.id;
@@ -181,7 +153,9 @@ export const getBookingForReschedule = async (uid: string, userId?: number) => {
   if (theBooking && theBooking?.eventType?.seatsPerTimeSlot && bookingSeatReferenceUid === null) {
     const isOwnerOfBooking = theBooking.userId === userId;
 
-    const isHostOfEventType = theBooking?.eventType?.hosts.some((host) => host.userId === userId);
+    const isHostOfEventType = theBooking?.eventType?.hosts.some(
+      (host: { userId?: number }) => host.userId === userId
+    );
 
     const isUserIdInBooking = theBooking.userId === userId;
 
