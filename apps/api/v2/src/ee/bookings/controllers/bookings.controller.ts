@@ -131,15 +131,15 @@ export class BookingsController {
     };
   }
 
-  // @Get("/:bookingUid/reschedule")
-  // async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
-  //   const booking = await this.getBookingInfo(bookingUid);
+  @Get("/:bookingUid/reschedule")
+  async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
+    const booking = await this.getBookingInfo(bookingUid);
 
-  //   return {
-  //     status: SUCCESS_STATUS,
-  //     data: booking,
-  //   };
-  // }
+    return {
+      status: SUCCESS_STATUS,
+      data: booking,
+    };
+  }
 
   // @Post("/")
   // async createBooking(

@@ -62,16 +62,12 @@ export class SelectedCalendarsRepository {
     });
   }
 
-  // TODO: PrismaWriteService
   async removeUserSelectedCalendar(userId: number, integration: string, externalId: string) {
-    // return await this.dbWrite.prisma.selectedCalendar.delete({
-    //   where: {
-    //     userId_integration_externalId: {
-    //       userId,
-    //       externalId,
-    //       integration,
-    //     },
-    //   },
-    // });
+    return await supabase
+      .from("SelectedCalendar")
+      .delete()
+      .eq("userId", userId)
+      .eq("integration", integration)
+      .eq("externalId", externalId);
   }
 }
