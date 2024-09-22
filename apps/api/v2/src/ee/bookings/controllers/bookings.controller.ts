@@ -29,7 +29,6 @@ import {
   BookingResponse,
   HttpError,
   getBookingForReschedule,
-  getBookingInfo,
   handleCancelBooking,
   handleInstantMeeting,
   handleNewBooking,
@@ -90,62 +89,53 @@ export class BookingsController {
     private readonly billingService: BillingService
   ) {}
 
-  @Get("/")
-  // @UseGuards(ApiAuthGuard)
-  // @Permissions([BOOKING_READ])
-  @ApiQuery({ name: "filters[status]", enum: Status, required: true })
-  @ApiQuery({ name: "limit", type: "number", required: false })
-  @ApiQuery({ name: "cursor", type: "number", required: false })
-  async getBookings(
-    @GetUser() user: User,
-    @Query() queryParams: GetBookingsInput
-  ): Promise<GetBookingsOutput> {
-    const { filters, cursor, limit } = queryParams;
+  // @Get("/")
+  // // @UseGuards(ApiAuthGuard)
+  // // @Permissions([BOOKING_READ])
+  // @ApiQuery({ name: "filters[status]", enum: Status, required: true })
+  // @ApiQuery({ name: "limit", type: "number", required: false })
+  // @ApiQuery({ name: "cursor", type: "number", required: false })
+  // async getBookings(@Query() queryParams: GetBookingsInput): Promise<GetBookingsOutput> {
+  //   const { filters, cursor, limit } = queryParams;
 
-    if (!filters.status) {
-      return {
-        status: ERROR_STATUS,
-        data: null,
-      };
-    }
-
-    const bookings = (await supabase
-      .from("Booking")
-      .select("*")
-      .eq("userId", user.id)
-      .eq("status", filters.status)
-      .eq("userPrimaryEmail", user.email)
-      .limit(limit ?? 10)) as any;
-
-    return {
-      status: SUCCESS_STATUS,
-      data: {
-        bookings,
-        recurringInfo: false as any,
-        nextCursor: false as any,
-      },
-    };
-  }
-
-  // @Get("/:bookingUid")
-  // async getBooking(@Param("bookingUid") bookingUid: string): Promise<GetBookingOutput> {
-  //   const { bookingInfo } = await getBookingInfo(bookingUid);
-
-  //   if (!bookingInfo) {
-  //     throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
+  //   if (!filters.status) {
+  //     return {
+  //       status: ERROR_STATUS,
+  //       data: null,
+  //     };
   //   }
+
+  //   const bookings = (await supabase
+  //     .from("Booking")
+  //     .select("*")
+  //     .eq("status", filters.status)
+  //     .limit(limit ?? 10)) as any;
 
   //   return {
   //     status: SUCCESS_STATUS,
-  //     data: bookingInfo,
+  //     data: {
+  //       bookings,
+  //       recurringInfo: false as any,
+  //       nextCursor: false as any,
+  //     },
   //   };
   // }
 
+  @Get("/:bookingUid")
+  async getBooking(@Param("bookingUid") bookingUid: string): Promise<GetBookingOutput> {
+    const booking = await this.getBookingInfo(bookingUid);
+
+    return {
+      status: SUCCESS_STATUS,
+      data: booking,
+    };
+  }
+
   // @Get("/:bookingUid/reschedule")
   // async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
-  //   const booking = await getBookingForReschedule(bookingUid);
+  //   const bookings = (await supabase.from("Booking").select("*").eq("uid", bookingUid)) as any;
 
-  //   if (!booking) {
+  //   if (!bookings || !bookings.length) {
   //     throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
   //   }
 
@@ -303,6 +293,16 @@ export class BookingsController {
   //   }
   //   throw new InternalServerErrorException("Could not create instant booking.");
   // }
+
+  async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"]> {
+    const bookings = (await supabase.from("Booking").select("*").eq("uid", bookingUid)) as any;
+
+    if (!bookings || !bookings.length) {
+      throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
+    }
+
+    return bookings[0];
+  }
 
   // private async getOwnerId(req: Request): Promise<number | undefined> {
   //   try {
