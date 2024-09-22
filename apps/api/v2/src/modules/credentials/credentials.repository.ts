@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 
 import { APPS_TYPE_ID_MAPPING } from "@calcom/platform-constants";
 
+import { supabase } from "../../config/supabase";
+
 @Injectable()
 export class CredentialsRepository {
   // TODO: PrismaWriteService
@@ -32,30 +34,13 @@ export class CredentialsRepository {
   getByTypeAndUserId(type: string, userId: number) {
     // return this.dbWrite.prisma.credential.findFirst({ where: { type, userId } });
   }
-  // TODO: PrismaReadService
+
   getUserCredentialsByIds(userId: number, credentialIds: number[]) {
-    // return this.dbRead.prisma.credential.findMany({
-    //   where: {
-    //     id: {
-    //       in: credentialIds,
-    //     },
-    //     userId: userId,
-    //   },
-    //   select: {
-    //     id: true,
-    //     type: true,
-    //     key: true,
-    //     userId: true,
-    //     teamId: true,
-    //     appId: true,
-    //     invalid: true,
-    //     user: {
-    //       select: {
-    //         email: true,
-    //       },
-    //     },
-    //   },
-    // });
+    return supabase
+      .from("credentials")
+      .select("id, type, key, userId, teamId, appId, invalid")
+      .in("id", credentialIds)
+      .eq("userId", userId);
   }
 }
 

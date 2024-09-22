@@ -85,13 +85,13 @@ export class CalendarsService {
 
   async getUniqCalendarCredentials(calendarsToLoad: Calendar[], userId: User["id"]) {
     const uniqueCredentialIds = Array.from(new Set(calendarsToLoad.map((item) => item.credentialId)));
-    const credentials = await this.credentialsRepository.getUserCredentialsByIds(userId, uniqueCredentialIds);
+    const { data } = await this.credentialsRepository.getUserCredentialsByIds(userId, uniqueCredentialIds);
 
-    if (credentials.length !== uniqueCredentialIds.length) {
+    if (!data || data.length !== uniqueCredentialIds.length) {
       throw new UnauthorizedException("These credentials do not belong to you");
     }
 
-    return credentials;
+    return data;
   }
 
   async getCalendarsWithCredentials(
