@@ -1,4 +1,3 @@
-import { supabase } from "@/config/supabase";
 import {
   Controller,
   Post,
@@ -40,6 +39,7 @@ import { GetBookingsInput, CancelBookingInput, Status } from "@calcom/platform-t
 import { ApiResponse } from "@calcom/platform-types";
 import { PrismaClient } from "@calcom/prisma";
 
+import { supabase } from "../../../config/supabase";
 import { hashAPIKey, isApiKey, stripApiKey } from "../../../lib/api-key";
 import { API_VERSIONS_VALUES } from "../../../lib/api-versions";
 import { ApiKeyRepository } from "../../../modules/api-key/api-key-repository";
