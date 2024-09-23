@@ -290,15 +290,15 @@ export class BookingsController {
     throw new InternalServerErrorException("Could not create instant booking.");
   }
 
-  private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"]> {
+  private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"] | null> {
     const { data: bookingInfo, error } = await supabase
       .from("Bookings")
       .select("*")
-      .eq("uid", uid)
+      .eq("uid", bookingUid)
       .limit(1)
       .single();
 
-    if (error) return null;
+    if (error || !bookingUid) return null;
 
     return bookingInfo;
   }
