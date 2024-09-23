@@ -32,6 +32,7 @@ import {
 } from "@calcom/platform-libraries";
 import { ApiResponse, CancelBookingInput, GetBookingsInput, Status } from "@calcom/platform-types";
 
+import { supabase } from "../../../config/supabase";
 import { API_VERSIONS_VALUES } from "../../../lib/api-versions";
 import { GetUser } from "../../../modules/auth/decorators/get-user/get-user.decorator";
 import { Permissions } from "../../../modules/auth/decorators/permissions/permissions.decorator";
