@@ -97,17 +97,6 @@ export class BookingsController {
     const bookings = await this.getAllUserBookings({ filters, cursor, limit });
     const nextCursor = (cursor ?? 0) + (limit ?? 10);
 
-    // const bookings = await getAllUserBookings({
-    //   bookingListingByStatus: filters.status,
-    //   skip: cursor ?? 0,
-    //   take: limit ?? 10,
-    //   filters,
-    //   ctx: {
-    //     user: { email: user.email, id: user.id },
-    //     prisma: this.prismaReadService.prisma as unknown as PrismaClient,
-    //   },
-    // });
-
     return {
       status: SUCCESS_STATUS,
       data: { bookings, nextCursor, recurringInfo: [] },
@@ -300,13 +289,13 @@ export class BookingsController {
     const { data: bookings, error } = await supabase
       .from("Booking")
       .select("*")
-      .eq("status", "accepted")
+      .eq("status", filters.status)
       .range(cursor ?? 0, range)
       .limit(limit ?? 10);
 
-    return JSON.stringify({ error, bookings, filters });
+    if (error || !bookings) return null;
 
-    // return bookings as GetBookingsOutput["data"]["bookings"];
+    return bookings as GetBookingsOutput["data"]["bookings"];
   }
 
   private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"] | null> {
