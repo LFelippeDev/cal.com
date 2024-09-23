@@ -31,6 +31,7 @@ import {
   handleNewRecurringBooking,
 } from "@calcom/platform-libraries";
 import { ApiResponse, CancelBookingInput, GetBookingsInput, Status } from "@calcom/platform-types";
+import { Prisma } from "@calcom/prisma/client";
 
 import { supabase } from "../../../config/supabase";
 import { API_VERSIONS_VALUES } from "../../../lib/api-versions";
@@ -95,7 +96,13 @@ export class BookingsController {
     @GetUser() user: User,
     @Query() queryParams: GetBookingsInput
   ): Promise<GetBookingsOutput> {
-    // const { filters, cursor, limit } = queryParams;
+    const { filters, cursor, limit } = queryParams;
+    const { data: bookings } = (await supabase
+      .from("Booking")
+      .select("*")
+      .eq("status", filters)
+      .limit(limit ?? 10)) as any;
+
     // const bookings = await getAllUserBookings({
     //   bookingListingByStatus: filters.status,
     //   skip: cursor ?? 0,
@@ -109,7 +116,7 @@ export class BookingsController {
 
     return {
       status: SUCCESS_STATUS,
-      data: {} as any,
+      data: { bookings, nextCursor: false, recurringInfo: false },
     };
   }
 
@@ -127,19 +134,19 @@ export class BookingsController {
     };
   }
 
-  @Get("/:bookingUid/reschedule")
-  async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
-    const booking = await getBookingForReschedule(bookingUid);
+  // @Get("/:bookingUid/reschedule")
+  // async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
+  //   const booking = await this.getBookingReschedule(bookingUid);
 
-    if (!booking) {
-      throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
-    }
+  //   if (!booking) {
+  //     throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
+  //   }
 
-    return {
-      status: SUCCESS_STATUS,
-      data: booking,
-    };
-  }
+  //   return {
+  //     status: SUCCESS_STATUS,
+  //     data: booking,
+  //   };
+  // }
 
   @Post("/")
   async createBooking(
@@ -302,6 +309,66 @@ export class BookingsController {
 
     return bookingInfo;
   }
+
+  // private async getBookingReschedule(uid: string, userId?: number) {
+  //   let rescheduleUid: string | null = null;
+
+  //   const theBooking = this.getBookingInfo(uid) as any;
+
+  //   let bookingSeatReferenceUid: number | null = null;
+  //   let attendeeEmail: string | null = null;
+  //   let hasOwnershipOnBooking = false;
+  //   let bookingSeatData: { description?: string; responses: Prisma.JsonValue } | null = null;
+
+  //   if (!theBooking) {
+  //     const { data: bookingSeat, error } = await supabase
+  //       .from("BookingSeat")
+  //       .select("*")
+  //       .eq("referenceUid", uid)
+  //       .limit(1)
+  //       .single();
+
+  //     if (bookingSeat && !error) {
+  //       bookingSeatData = bookingSeat.data as unknown as {
+  //         description?: string;
+  //         responses: Prisma.JsonValue;
+  //       };
+  //       bookingSeatReferenceUid = bookingSeat.id;
+  //       rescheduleUid = bookingSeat.booking.uid;
+  //       attendeeEmail = bookingSeat.attendee.email;
+  //     }
+  //   }
+
+  //   if (theBooking && theBooking?.eventType?.seatsPerTimeSlot && bookingSeatReferenceUid === null) {
+  //     const isOwnerOfBooking = theBooking.userId === userId;
+
+  //     const isHostOfEventType = theBooking?.eventType?.hosts.some(
+  //       (host: { userId?: number }) => host.userId === userId
+  //     );
+
+  //     const isUserIdInBooking = theBooking.userId === userId;
+
+  //     if (!isOwnerOfBooking && !isHostOfEventType && !isUserIdInBooking) return null;
+  //     hasOwnershipOnBooking = true;
+  //   }
+
+  //   if (!theBooking && !rescheduleUid) return null;
+
+  //   const booking = await this.getBookingInfo(rescheduleUid || uid);
+
+  //   if (!booking) return null;
+
+  //   if (bookingSeatReferenceUid) booking["description"] = bookingSeatData?.description ?? null;
+
+  //   return {
+  //     ...booking,
+  //     attendees: rescheduleUid
+  //       ? booking.attendees.filter((attendee: any) => attendee.email === attendeeEmail)
+  //       : hasOwnershipOnBooking
+  //       ? []
+  //       : booking.attendees,
+  //   };
+  // }
 
   private async getOwnerId(req: Request): Promise<number | undefined> {
     try {
