@@ -92,12 +92,10 @@ export class BookingsController {
   @ApiQuery({ name: "filters[status]", enum: Status, required: true })
   @ApiQuery({ name: "limit", type: "number", required: false })
   @ApiQuery({ name: "cursor", type: "number", required: false })
-  async getBookings(
-    // @GetUser() user: User,
-    @Query() queryParams: GetBookingsInput
-  ): Promise<GetBookingsOutput> {
+  async getBookings(@Query() queryParams: GetBookingsInput): Promise<GetBookingsOutput> {
     const { filters, cursor, limit } = queryParams;
     const bookings = await this.getAllUserBookings({ filters, cursor, limit });
+    const nextCursor = (cursor ?? 0) + (limit ?? 10);
 
     // const bookings = await getAllUserBookings({
     //   bookingListingByStatus: filters.status,
@@ -112,7 +110,7 @@ export class BookingsController {
 
     return {
       status: SUCCESS_STATUS,
-      data: { bookings, nextCursor: false, recurringInfo: false },
+      data: { bookings, nextCursor, recurringInfo: [] },
     };
   }
 
@@ -297,20 +295,16 @@ export class BookingsController {
     cursor,
     filters,
     limit,
-  }: {
-    cursor?: number | null;
-    filters: any;
-    limit?: number;
-  }): Promise<GetBookingsOutput["data"]["bookings"]> {
+  }: GetBookingsInput): Promise<GetBookingsOutput["data"]["bookings"]> {
     const range = (cursor ?? 0) + (limit ?? 10) - 1;
     const { data: bookings, error } = await supabase
       .from("Booking")
       .select("*")
-      .eq("status", filters)
+      .eq("status", "accepted")
       .range(cursor ?? 0, range)
       .limit(limit ?? 10);
 
-    return JSON.stringify({ error, bookings });
+    return JSON.stringify({ error, bookings, filters });
 
     // return bookings as GetBookingsOutput["data"]["bookings"];
   }

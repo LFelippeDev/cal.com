@@ -13,6 +13,7 @@ import {
 } from "class-validator";
 
 export enum Status {
+  accepted = "accepted",
   upcoming = "upcoming",
   recurring = "recurring",
   past = "past",
