@@ -88,7 +88,7 @@ export class BookingsController {
 
   @Get("/")
   // @UseGuards(ApiAuthGuard)
-  // @Permissions([BOOKING_READ])
+  @Permissions([BOOKING_READ])
   @ApiQuery({ name: "filters[status]", enum: Status, required: true })
   @ApiQuery({ name: "limit", type: "number", required: false })
   @ApiQuery({ name: "cursor", type: "number", required: false })
