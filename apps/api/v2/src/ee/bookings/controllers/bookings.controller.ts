@@ -88,7 +88,7 @@ export class BookingsController {
 
   @Get("/")
   // @UseGuards(ApiAuthGuard)
-  @Permissions([BOOKING_READ])
+  // @Permissions([BOOKING_READ])
   @ApiQuery({ name: "filters[status]", enum: Status, required: true })
   @ApiQuery({ name: "limit", type: "number", required: false })
   @ApiQuery({ name: "cursor", type: "number", required: false })
@@ -169,27 +169,26 @@ export class BookingsController {
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<{ bookingId: number; bookingUid: string; onlyRemovedAttendee: boolean }>> {
     const oAuthClientId = clientId?.toString();
-    if (bookingId) {
-      try {
-        req.body.id = parseInt(bookingId);
-        const res = await handleCancelBooking(await this.createNextApiBookingRequest(req, oAuthClientId));
-        if (!res.onlyRemovedAttendee) {
-          void (await this.billingService.cancelUsageByBookingUid(res.bookingUid));
-        }
-        return {
-          status: SUCCESS_STATUS,
-          data: {
-            bookingId: res.bookingId,
-            bookingUid: res.bookingUid,
-            onlyRemovedAttendee: res.onlyRemovedAttendee,
-          },
-        };
-      } catch (err) {
-        this.handleBookingErrors(err);
+    if (!bookingId) throw new NotFoundException("Booking ID is required.");
+
+    try {
+      req.body.id = parseInt(bookingId);
+      const res = await handleCancelBooking(await this.createNextApiBookingRequest(req, oAuthClientId));
+      if (!res.onlyRemovedAttendee) {
+        void (await this.billingService.cancelUsageByBookingUid(res.bookingUid));
       }
-    } else {
-      throw new NotFoundException("Booking ID is required.");
+      return {
+        status: SUCCESS_STATUS,
+        data: {
+          bookingId: res.bookingId,
+          bookingUid: res.bookingUid,
+          onlyRemovedAttendee: res.onlyRemovedAttendee,
+        },
+      };
+    } catch (err) {
+      this.handleBookingErrors(err);
     }
+
     throw new InternalServerErrorException("Could not cancel booking.");
   }
 
