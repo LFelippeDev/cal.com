@@ -225,5 +225,5 @@ export class GetBookingsOutput {
   })
   @ValidateNested()
   @Type(() => GetBookingsData)
-  data!: GetBookingsData | null;
+  data!: GetBookingsData;
 }

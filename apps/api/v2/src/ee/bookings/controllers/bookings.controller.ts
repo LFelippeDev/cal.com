@@ -97,14 +97,7 @@ export class BookingsController {
     @Query() queryParams: GetBookingsInput
   ): Promise<GetBookingsOutput> {
     const { filters, cursor, limit } = queryParams;
-    const range = (cursor ?? 0) + (limit ?? 10) - 1;
-
-    const { data: bookings } = (await supabase
-      .from("Booking")
-      .select("*")
-      .eq("status", filters)
-      .range(cursor ?? 0, range)
-      .limit(limit ?? 10)) as any;
+    const bookings = await this.getAllUserBookings({ filters, cursor, limit });
 
     // const bookings = await getAllUserBookings({
     //   bookingListingByStatus: filters.status,
@@ -298,6 +291,28 @@ export class BookingsController {
       this.handleBookingErrors(err, "instant");
     }
     throw new InternalServerErrorException("Could not create instant booking.");
+  }
+
+  private async getAllUserBookings({
+    cursor,
+    filters,
+    limit,
+  }: {
+    cursor?: number | null;
+    filters: any;
+    limit?: number;
+  }): Promise<GetBookingsOutput["data"]["bookings"]> {
+    const range = (cursor ?? 0) + (limit ?? 10) - 1;
+    const { data: bookings, error } = await supabase
+      .from("Booking")
+      .select("*")
+      .eq("status", filters)
+      .range(cursor ?? 0, range)
+      .limit(limit ?? 10);
+
+    return JSON.stringify({ error, bookings });
+
+    // return bookings as GetBookingsOutput["data"]["bookings"];
   }
 
   private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"] | null> {
