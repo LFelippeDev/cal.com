@@ -87,8 +87,8 @@ export class BookingsController {
   ) {}
 
   @Get("/")
-  @UseGuards(ApiAuthGuard)
-  @Permissions([BOOKING_READ])
+  // @UseGuards(ApiAuthGuard)
+  // @Permissions([BOOKING_READ])
   @ApiQuery({ name: "filters[status]", enum: Status, required: true })
   @ApiQuery({ name: "limit", type: "number", required: false })
   @ApiQuery({ name: "cursor", type: "number", required: false })
@@ -97,10 +97,13 @@ export class BookingsController {
     @Query() queryParams: GetBookingsInput
   ): Promise<GetBookingsOutput> {
     const { filters, cursor, limit } = queryParams;
+    const range = (cursor ?? 0) + (limit ?? 10) - 1;
+
     const { data: bookings } = (await supabase
       .from("Booking")
       .select("*")
       .eq("status", filters)
+      .range(cursor ?? 0, range)
       .limit(limit ?? 10)) as any;
 
     // const bookings = await getAllUserBookings({
