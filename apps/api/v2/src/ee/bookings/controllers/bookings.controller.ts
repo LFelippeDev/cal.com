@@ -292,15 +292,15 @@ export class BookingsController {
 
   private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"] | null> {
     const { data: bookingInfo, error } = await supabase
-      .from("Bookings")
+      .from("Booking")
       .select("*")
       .eq("uid", bookingUid)
       .limit(1)
       .single();
 
-    // if (error || !bookingUid) return null;
+    if (error || !bookingInfo) return null;
 
-    return JSON.stringify({ bookingInfo, error });
+    return bookingInfo;
   }
 
   private async getOwnerId(req: Request): Promise<number | undefined> {
