@@ -298,9 +298,9 @@ export class BookingsController {
       .limit(1)
       .single();
 
-    if (error || !bookingUid) return null;
+    // if (error || !bookingUid) return null;
 
-    return bookingInfo;
+    return JSON.stringify({ bookingInfo, error });
   }
 
   private async getOwnerId(req: Request): Promise<number | undefined> {
