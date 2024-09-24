@@ -37,6 +37,11 @@ export class OAuthClientUsersService {
       throw new BadRequestException("You cannot create a managed user outside of an organization");
     } else {
       const email = this.getOAuthUserEmail(oAuthClientId, body.email);
+
+      return {
+        message: { message: JSON.stringify({ existsWithEmail, email }), user: null, tokens: null },
+      };
+
       user = (
         await createNewUsersConnectToOrgIfExists({
           invitations: [
@@ -62,11 +67,11 @@ export class OAuthClientUsersService {
         })
       )[0];
       await this.userRepository.addToOAuthClient(user.id, oAuthClientId);
-      const updatedUser = await this.userRepository.update(user.id, {
+      const { data: updatedUser } = await this.userRepository.update(user.id, {
         name: body.name ?? user.username ?? undefined,
         locale: body.locale,
       });
-      user.locale = updatedUser.locale;
+      if (updatedUser) user.locale = (updatedUser as any).locale;
     }
 
     const { accessToken, refreshToken, accessTokenExpiresAt } = await this.tokensRepository.createOAuthTokens(
