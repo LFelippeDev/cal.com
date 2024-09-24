@@ -39,7 +39,7 @@ import { UsersRepository } from "../../../users/users.repository";
   path: "/v2/oauth-clients/:clientId/users",
   version: API_VERSIONS_VALUES,
 })
-@UseGuards(ApiAuthGuard, OAuthClientGuard)
+// @UseGuards(ApiAuthGuard, OAuthClientGuard)
 @DocsTags("Managed users")
 export class OAuthClientUsersController {
   private readonly logger = new Logger("UserController");
@@ -79,25 +79,24 @@ export class OAuthClientUsersController {
     this.logger.log(
       `Creating user with data: ${JSON.stringify(body, null, 2)} for OAuth Client with ID ${oAuthClientId}`
     );
-    const client = await this.oauthRepository.getOAuthClient(oAuthClientId);
+    const { data: client } = (await this.oauthRepository.getOAuthClient(oAuthClientId)) as any;
     console.log("asap createUser client", JSON.stringify(client, null, 2));
 
     const isPlatformManaged = true;
-    const { user, tokens } = await this.oAuthClientUsersService.createOauthClientUser(
-      oAuthClientId,
-      body,
-      isPlatformManaged,
-      client?.organizationId
-    );
+    // const { user, tokens } = await this.oAuthClientUsersService.createOauthClientUser(
+    //   oAuthClientId,
+    //   body,
+    //   isPlatformManaged,
+    //   client?.organizationId
+    // );
+
+    const log = JSON.stringify({ body, client });
 
     return {
       status: SUCCESS_STATUS,
       data: {
-        user: this.getResponseUser(user),
-        accessToken: tokens.accessToken,
-        accessTokenExpiresAt: tokens.accessTokenExpiresAt.valueOf(),
-        refreshToken: tokens.refreshToken,
-      },
+        message: log,
+      } as any,
     };
   }
 
