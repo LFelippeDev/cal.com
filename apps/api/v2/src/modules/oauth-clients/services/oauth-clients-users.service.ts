@@ -46,30 +46,28 @@ export class OAuthClientUsersService {
     } else {
       const email = this.getOAuthUserEmail(oAuthClientId, body.email);
 
-      user = (
-        await this.createNewUsersConnectToOrgIfExists({
-          invitations: [
-            {
-              usernameOrEmail: email,
-              role: "MEMBER",
-            },
-          ],
-          teamId: organizationId,
-          isOrg: true,
-          parentId: null,
-          autoAcceptEmailDomain: "never-auto-accept-email-domain-for-managed-users",
-          orgConnectInfoByUsernameOrEmail: {
-            [email]: {
-              orgId: organizationId,
-              autoAccept: true,
-            },
+      user = await this.createNewUsersConnectToOrgIfExists({
+        invitations: [
+          {
+            usernameOrEmail: email,
+            role: "MEMBER",
           },
-          isPlatformManaged,
-          timeFormat: body.timeFormat,
-          weekStart: body.weekStart,
-          timeZone: body.timeZone,
-        })
-      )[0];
+        ],
+        teamId: organizationId,
+        isOrg: true,
+        parentId: null,
+        autoAcceptEmailDomain: "never-auto-accept-email-domain-for-managed-users",
+        orgConnectInfoByUsernameOrEmail: {
+          [email]: {
+            orgId: organizationId,
+            autoAccept: true,
+          },
+        },
+        isPlatformManaged,
+        timeFormat: body.timeFormat,
+        weekStart: body.weekStart,
+        timeZone: body.timeZone,
+      });
 
       return { user: null, tokens: null, message: user };
 
@@ -145,15 +143,22 @@ export class OAuthClientUsersService {
     weekStart?: string;
     timeZone?: string;
   }) {
+    const logs = [];
     // fail if we have invalid emails
     invitations.forEach((invitation) => isEmail(invitation.usernameOrEmail));
     // from this point we know usernamesOrEmails contains only emails
     const createdUsers = [];
     for (let index = 0; index < invitations.length; index++) {
       const invitation = invitations[index];
+      logs.push({ invitation });
       // Weird but orgId is defined only if the invited user email matches orgAutoAcceptEmail
       const { orgId, autoAccept } = orgConnectInfoByUsernameOrEmail[invitation.usernameOrEmail];
       const [emailUser, emailDomain] = invitation.usernameOrEmail.split("@");
+
+      logs.push({ orgId });
+      logs.push({ autoAccept });
+      logs.push({ emailUser });
+      logs.push({ emailDomain });
 
       // An org member can't change username during signup, so we set the username
       const orgMemberUsername =
@@ -165,6 +170,9 @@ export class OAuthClientUsersService {
       const regularTeamMemberUsername = null;
 
       const isBecomingAnOrgMember = parentId || isOrg;
+
+      logs.push({ orgMemberUsername });
+      logs.push({ isBecomingAnOrgMember });
 
       const { data: createdUser } = (await supabase
         .from("users")
@@ -199,6 +207,8 @@ export class OAuthClientUsersService {
         })
         .single()) as any;
 
+      logs.push({ createdUser });
+
       // We also need to create the membership in the parent org if it exists
       if (parentId) {
         await supabase.from("Membership").insert({
@@ -211,6 +221,7 @@ export class OAuthClientUsersService {
       createdUsers.push(createdUser);
     }
 
+    return logs;
     return createdUsers;
   }
 
