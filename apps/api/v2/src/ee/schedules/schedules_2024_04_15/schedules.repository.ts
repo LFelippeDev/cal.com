@@ -28,9 +28,9 @@ export class SchedulesRepository_2024_04_15 {
         });
       });
     }
-    const { data, error } = await supabase.from("Schedule").insert(createScheduleData).select("*").single();
+    const { data } = await supabase.from("Schedule").insert(createScheduleData).select("*").single();
 
-    return { data, error };
+    return data;
   }
   // TODO: PrismaReadService
   async getScheduleById(scheduleId: number) {
