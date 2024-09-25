@@ -207,8 +207,6 @@ export class OAuthClientUsersService {
 
       logs.push({ teamData });
       logs.push({ teamError });
-      logs.push({ createdUser });
-      logs.push({ createdUserError });
 
       // We also need to create the membership in the parent org if it exists
       if (parentId) {
