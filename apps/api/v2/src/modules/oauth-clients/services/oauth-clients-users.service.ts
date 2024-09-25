@@ -165,7 +165,7 @@ export class OAuthClientUsersService {
 
       const isBecomingAnOrgMember = parentId || isOrg;
 
-      const { data: createdUser, erro: createdUserError } = (await supabase
+      const { data: createdUser } = (await supabase
         .from("users")
         .insert({
           username: isBecomingAnOrgMember ? orgMemberUsername : regularTeamMemberUsername,
@@ -184,7 +184,7 @@ export class OAuthClientUsersService {
       const userId = createdUser.id;
 
       if (orgId) {
-        const { data: profileData, error: profileError } = await supabase.from("Profile").insert([
+        await supabase.from("Profile").insert([
           {
             uid: ProfileRepository.generateProfileUid(),
             username: orgMemberUsername,
@@ -192,16 +192,15 @@ export class OAuthClientUsersService {
             userId: userId,
           },
         ]);
-        logs.push({ profileData });
-        logs.push({ profileError });
       }
 
-      const { data: teamData, error: teamError } = await supabase.from("Team").insert([
+      const { data: teamData, error: teamError } = await supabase.from("Membership").insert([
         {
           teamId: teamId,
           role: invitation.role,
           accepted: autoAccept,
           userId: userId,
+          disbableImpersonation: false,
         },
       ]);
 
@@ -215,6 +214,7 @@ export class OAuthClientUsersService {
           userId: createdUser.id,
           role: MembershipRole.MEMBER,
           accepted: autoAccept,
+          disbableImpersonation: false,
         });
       }
       createdUsers.push(createdUser);
