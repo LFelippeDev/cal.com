@@ -1,49 +1,36 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
+import { supabase } from "../../../config/supabase";
 import { CreateAvailabilityInput_2024_04_15 } from "./inputs/create-availability.input";
 import { CreateScheduleInput_2024_04_15 } from "./inputs/create-schedule.input";
 
 @Injectable()
 export class SchedulesRepository_2024_04_15 {
-  // TODO: PrismaWriteService
   async createScheduleWithAvailabilities(
     userId: number,
     schedule: CreateScheduleInput_2024_04_15,
     availabilities: CreateAvailabilityInput_2024_04_15[]
   ) {
-    // const createScheduleData: Prisma.ScheduleCreateInput = {
-    //   user: {
-    //     connect: {
-    //       id: userId,
-    //     },
-    //   },
-    //   name: schedule.name,
-    //   timeZone: schedule.timeZone,
-    // };
-    // if (availabilities.length > 0) {
-    //   createScheduleData.availability = {
-    //     createMany: {
-    //       data: availabilities.map((availability) => {
-    //         return {
-    //           days: availability.days,
-    //           startTime: availability.startTime,
-    //           endTime: availability.endTime,
-    //           userId,
-    //         };
-    //       }),
-    //     },
-    //   };
-    // }
-    // const createdSchedule = await this.dbWrite.prisma.schedule.create({
-    //   data: {
-    //     ...createScheduleData,
-    //   },
-    //   include: {
-    //     availability: true,
-    //   },
-    // });
-    // return createdSchedule;
+    const createScheduleData = {
+      availability: {},
+      name: schedule.name,
+      timeZone: schedule.timeZone,
+      userId,
+    };
+    if (availabilities.length > 0) {
+      createScheduleData.availability = availabilities.map((availability) => {
+        return JSON.stringify({
+          days: availability.days,
+          startTime: availability.startTime,
+          endTime: availability.endTime,
+          userId,
+        });
+      });
+    }
+    const { data, error } = await supabase.from("Schedule").insert(createScheduleData).select("*").single();
+
+    return { data, error };
   }
   // TODO: PrismaReadService
   async getScheduleById(scheduleId: number) {
