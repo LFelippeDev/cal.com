@@ -71,13 +71,12 @@ export class OAuthClientUsersService {
         })
       )[0];
 
-      const data = await this.userRepository.addToOAuthClient(user.id, oAuthClientId);
+      await this.userRepository.addToOAuthClient(user.id, oAuthClientId);
       const updatedUser = await this.userRepository.update(user.id, {
         name: body.name ?? user.username ?? undefined,
         locale: body.locale,
       });
 
-      return { tokens: null, user: null, message: JSON.stringify({ updatedUser, data }) };
       if (updatedUser) user.locale = (updatedUser as any).locale;
     }
 
@@ -85,6 +84,12 @@ export class OAuthClientUsersService {
       oAuthClientId,
       user.id
     );
+
+    return {
+      tokens: null,
+      user: null,
+      message: JSON.stringify({ accessToken, refreshToken, accessTokenExpiresAt }),
+    };
 
     await this.eventTypesService.createUserDefaultEventTypes(user.id);
 
