@@ -87,15 +87,15 @@ export class OAuthClientUsersService {
 
     await this.eventTypesService.createUserDefaultEventTypes(user.id);
 
+    return {
+      tokens: null,
+      user: null,
+      message: "Tudo certo até aqui",
+    };
+
     if (body.timeZone) {
       const defaultSchedule = await this.schedulesService.createUserDefaultSchedule(user.id, body.timeZone);
       // user.defaultScheduleId = defaultSchedule.id;
-
-      return {
-        tokens: null,
-        user: null,
-        message: JSON.stringify({ defaultSchedule }),
-      };
     }
 
     await this.organizationsTeamsService.addUserToPlatformTeamEvents(user.id, organizationId, oAuthClientId);

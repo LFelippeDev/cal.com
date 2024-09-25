@@ -8,8 +8,8 @@ import {
   Logger,
   NotFoundException,
   Param,
+  Patch,
   Post,
-  Put,
   Query,
 } from "@nestjs/common";
 import { ApiTags as DocsTags } from "@nestjs/swagger";
@@ -87,12 +87,10 @@ export class OAuthClientUsersController {
       client?.organizationId
     );
 
-    const log = JSON.stringify({ message });
-
     return {
       status: SUCCESS_STATUS,
       data: {
-        message: log,
+        message: JSON.stringify({ message }),
       } as any,
     };
   }
@@ -111,7 +109,7 @@ export class OAuthClientUsersController {
     };
   }
 
-  @Put("/:userId")
+  @Patch("/:userId")
   @HttpCode(HttpStatus.OK)
   async updateUser(
     @Param("clientId") clientId: string,
