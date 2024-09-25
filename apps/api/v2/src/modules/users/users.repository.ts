@@ -32,7 +32,7 @@ export class UsersRepository {
     // });
   }
   async addToOAuthClient(userId: number, oAuthClientId: string) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("users")
       .update({
         platformOAuthClients: {
@@ -42,7 +42,7 @@ export class UsersRepository {
       .eq("id", userId)
       .select("*");
 
-    return data;
+    return error || data;
   }
   // TODO: PrismaReadService
   async findById(userId: number) {
@@ -151,28 +151,26 @@ export class UsersRepository {
     //   },
     // });
   }
-  // TODO: PrismaReadService
+
   async findManagedUsersByOAuthClientId(oauthClientId: string, cursor: number, limit: number) {
-    // return this.dbRead.prisma.user.findMany({
-    //   where: {
-    //     platformOAuthClients: {
-    //       some: {
-    //         id: oauthClientId,
-    //       },
-    //     },
-    //     isPlatformManaged: true,
-    //   },
-    //   take: limit,
-    //   skip: cursor,
-    // });
+    const range = (cursor ?? 0) + (limit ?? 10) - 1;
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("isPlatformManaged", true)
+      .filter("platformOAuthClients", "cs", `[{"id": ${oauthClientId}}]`)
+      .limit(limit)
+      .range(cursor, range);
+
+    return error || data;
   }
 
   async update(userId: number, updateData: UpdateManagedUserInput) {
     this.formatInput(updateData);
 
-    const { data } = await supabase.from("users").update(updateData).eq("id", userId);
+    const { data, error } = await supabase.from("users").update(updateData).eq("id", userId);
 
-    return data;
+    return error || data;
   }
   // TODO: PrismaWriteService
   async updateUsername(userId: number, newUsername: string) {
