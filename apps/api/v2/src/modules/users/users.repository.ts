@@ -40,7 +40,7 @@ export class UsersRepository {
       .eq("id", userId)
       .select("*");
 
-    return error || data;
+    return data;
   }
   // TODO: PrismaReadService
   async findById(userId: number) {
@@ -52,15 +52,15 @@ export class UsersRepository {
   }
 
   async findByIdWithinPlatformScope(userId: number, clientId: string) {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("users")
       .select("*")
       .eq("id", userId)
       .eq("isPlatformManaged", true)
-      .contains("platformOAuthClients", clientId)
+      .contains("platformOAuthClients", [clientId])
       .single();
 
-    return error || data;
+    return data;
   }
   // TODO: PrismaReadService
   async findByIdWithProfile(userId: number): Promise<UserWithProfile | null> {
@@ -154,7 +154,7 @@ export class UsersRepository {
       .from("users")
       .select("*")
       .eq("isPlatformManaged", true)
-      .contains("platformOAuthClients", oauthClientId)
+      .contains("platformOAuthClients", [oauthClientId])
       .limit(limit)
       .range(cursor, range);
 
@@ -179,14 +179,11 @@ export class UsersRepository {
     //   },
     // });
   }
-  // TODO: PrismaWriteService
-  async delete(userId: number): Promise<User> {
-    // return this.dbWrite.prisma.user.delete({
-    //   where: { id: userId },
-    // });
 
-    // tirar essa linha
-    return new Promise((resolve) => resolve({} as User));
+  async delete(userId: number): Promise<User> {
+    const { data } = await supabase.from("users").delete().eq("id", userId).select("*").single();
+
+    return data;
   }
 
   formatInput(userInput: CreateManagedUserInput | UpdateManagedUserInput) {

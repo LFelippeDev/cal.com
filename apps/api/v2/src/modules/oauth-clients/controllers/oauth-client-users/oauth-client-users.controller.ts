@@ -67,7 +67,7 @@ export class OAuthClientUsersController {
 
     return {
       status: SUCCESS_STATUS,
-      data: JSON.stringify({ existingUsers }),
+      data: existingUsers as GetManagedUsersOutput["data"],
     };
   }
 
