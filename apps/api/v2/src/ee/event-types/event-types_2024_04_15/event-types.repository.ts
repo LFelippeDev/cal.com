@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { getEventTypeById } from "@calcom/platform-libraries";
 import type { PrismaClient } from "@calcom/prisma";
 
+import { supabase } from "../../../config/supabase";
 import { UsersService } from "../../../modules/users/services/users.service";
 import { UserWithProfile } from "../../../modules/users/users.repository";
 import { CreateEventTypeInput_2024_04_15 } from "../../event-types/event-types_2024_04_15/inputs/create-event-type.input";
@@ -10,18 +11,18 @@ import { CreateEventTypeInput_2024_04_15 } from "../../event-types/event-types_2
 @Injectable()
 export class EventTypesRepository_2024_04_15 {
   constructor(private usersService: UsersService) {}
-  // TODO: PrismaWriteService
+
   async createUserEventType(
     userId: number,
     body: Pick<CreateEventTypeInput_2024_04_15, "title" | "slug" | "length" | "hidden">
   ) {
-    // return this.dbWrite.prisma.eventType.create({
-    //   data: {
-    //     ...body,
-    //     userId,
-    //     users: { connect: { id: userId } },
-    //   },
-    // });
+    const { data } = await supabase
+      .from("EventType")
+      .insert({ ...body, userId, users: { id: userId } })
+      .select("id")
+      .single();
+
+    return data;
   }
   // TODO: PrismaReadService
   async getEventTypeWithSeats(eventTypeId: number) {

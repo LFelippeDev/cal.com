@@ -89,7 +89,7 @@ export class OAuthClientUsersService {
 
     if (body.timeZone) {
       const defaultSchedule = await this.schedulesService.createUserDefaultSchedule(user.id, body.timeZone);
-      user.defaultScheduleId = defaultSchedule.id;
+      // user.defaultScheduleId = defaultSchedule.id;
 
       return {
         tokens: null,
