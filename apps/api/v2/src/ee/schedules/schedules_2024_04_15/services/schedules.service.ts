@@ -45,9 +45,9 @@ export class SchedulesService_2024_04_15 {
       availabilities
     );
 
-    // if (schedule.isDefault) {
-    //   await this.usersRepository.setDefaultSchedule(userId, createdSchedule.id);
-    // }
+    if (schedule.isDefault) {
+      await this.usersRepository.setDefaultSchedule(userId, createdSchedule.id);
+    }
 
     return createdSchedule;
   }
