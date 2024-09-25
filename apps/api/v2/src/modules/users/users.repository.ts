@@ -32,11 +32,10 @@ export class UsersRepository {
     // });
   }
   async addToOAuthClient(userId: number, oAuthClientId: string) {
-    const platformOAuthClients = JSON.stringify([{ id: oAuthClientId }]);
     const { data, error } = await supabase
       .from("users")
       .update({
-        platformOAuthClients,
+        platformOAuthClients: [oAuthClientId],
       })
       .eq("id", userId)
       .select("*");
@@ -58,7 +57,7 @@ export class UsersRepository {
       .select("*")
       .eq("id", userId)
       .eq("isPlatformManaged", true)
-      .filter("platformOAuthClients", "cs", `[{"id": ${clientId}}]`)
+      .contains("platformOAuthClients", clientId)
       .single();
 
     return error || data;
@@ -155,7 +154,7 @@ export class UsersRepository {
       .from("users")
       .select("*")
       .eq("isPlatformManaged", true)
-      .filter("platformOAuthClients", "cs", `[{"id": ${oauthClientId}}]`)
+      .contains("platformOAuthClients", oauthClientId)
       .limit(limit)
       .range(cursor, range);
 
