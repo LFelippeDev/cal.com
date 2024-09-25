@@ -67,7 +67,7 @@ export class OAuthClientUsersController {
 
     return {
       status: SUCCESS_STATUS,
-      data: (existingUsers as []).map((user) => this.getResponseUser(user)),
+      data: JSON.stringify({ existingUsers }),
     };
   }
 

@@ -32,12 +32,11 @@ export class UsersRepository {
     // });
   }
   async addToOAuthClient(userId: number, oAuthClientId: string) {
+    const platformOAuthClients = JSON.stringify([{ id: oAuthClientId }]);
     const { data, error } = await supabase
       .from("users")
       .update({
-        platformOAuthClients: {
-          id: oAuthClientId,
-        },
+        platformOAuthClients,
       })
       .eq("id", userId)
       .select("*");
@@ -52,19 +51,17 @@ export class UsersRepository {
     //   },
     // });
   }
-  // TODO: PrismaReadService
+
   async findByIdWithinPlatformScope(userId: number, clientId: string) {
-    // return this.dbRead.prisma.user.findFirst({
-    //   where: {
-    //     id: userId,
-    //     isPlatformManaged: true,
-    //     platformOAuthClients: {
-    //       some: {
-    //         id: clientId,
-    //       },
-    //     },
-    //   },
-    // });
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .eq("isPlatformManaged", true)
+      .filter("platformOAuthClients", "cs", `[{"id": ${clientId}}]`)
+      .single();
+
+    return error || data;
   }
   // TODO: PrismaReadService
   async findByIdWithProfile(userId: number): Promise<UserWithProfile | null> {
@@ -167,6 +164,8 @@ export class UsersRepository {
 
   async update(userId: number, updateData: UpdateManagedUserInput) {
     this.formatInput(updateData);
+
+    return updateData;
 
     const { data, error } = await supabase.from("users").update(updateData).eq("id", userId);
 
