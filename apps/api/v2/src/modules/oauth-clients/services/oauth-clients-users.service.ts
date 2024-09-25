@@ -201,7 +201,7 @@ export class OAuthClientUsersService {
           role: invitation.role,
           accepted: autoAccept,
           userId: userId,
-          disbableImpersonation: false,
+          disableImpersonation: false,
         },
       ]);
 
@@ -212,7 +212,7 @@ export class OAuthClientUsersService {
           userId: createdUser.id,
           role: MembershipRole.MEMBER,
           accepted: autoAccept,
-          disbableImpersonation: false,
+          disableImpersonation: false,
         });
       }
       createdUsers.push(createdUser);
