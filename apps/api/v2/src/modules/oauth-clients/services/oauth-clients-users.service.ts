@@ -46,36 +46,38 @@ export class OAuthClientUsersService {
     } else {
       const email = this.getOAuthUserEmail(oAuthClientId, body.email);
 
-      user = await this.createNewUsersConnectToOrgIfExists({
-        invitations: [
-          {
-            usernameOrEmail: email,
-            role: "MEMBER",
+      user = (
+        await this.createNewUsersConnectToOrgIfExists({
+          invitations: [
+            {
+              usernameOrEmail: email,
+              role: "MEMBER",
+            },
+          ],
+          teamId: organizationId,
+          isOrg: true,
+          parentId: null,
+          autoAcceptEmailDomain: "never-auto-accept-email-domain-for-managed-users",
+          orgConnectInfoByUsernameOrEmail: {
+            [email]: {
+              orgId: organizationId,
+              autoAccept: true,
+            },
           },
-        ],
-        teamId: organizationId,
-        isOrg: true,
-        parentId: null,
-        autoAcceptEmailDomain: "never-auto-accept-email-domain-for-managed-users",
-        orgConnectInfoByUsernameOrEmail: {
-          [email]: {
-            orgId: organizationId,
-            autoAccept: true,
-          },
-        },
-        isPlatformManaged,
-        timeFormat: body.timeFormat,
-        weekStart: body.weekStart,
-        timeZone: body.timeZone,
-      });
+          isPlatformManaged,
+          timeFormat: body.timeFormat,
+          weekStart: body.weekStart,
+          timeZone: body.timeZone,
+        })
+      )[0];
 
-      return { user: null, tokens: null, message: user };
-
-      await this.userRepository.addToOAuthClient(user.id, oAuthClientId);
-      const { data: updatedUser } = await this.userRepository.update(user.id, {
+      const data = await this.userRepository.addToOAuthClient(user.id, oAuthClientId);
+      const updatedUser = await this.userRepository.update(user.id, {
         name: body.name ?? user.username ?? undefined,
         locale: body.locale,
       });
+
+      return { tokens: null, user: null, message: JSON.stringify({ updatedUser, data }) };
       if (updatedUser) user.locale = (updatedUser as any).locale;
     }
 
@@ -143,7 +145,6 @@ export class OAuthClientUsersService {
     weekStart?: string;
     timeZone?: string;
   }) {
-    const logs = [];
     // fail if we have invalid emails
     invitations.forEach((invitation) => isEmail(invitation.usernameOrEmail));
     // from this point we know usernamesOrEmails contains only emails
@@ -194,7 +195,7 @@ export class OAuthClientUsersService {
         ]);
       }
 
-      const { data: teamData, error: teamError } = await supabase.from("Membership").insert([
+      await supabase.from("Membership").insert([
         {
           teamId: teamId,
           role: invitation.role,
@@ -203,9 +204,6 @@ export class OAuthClientUsersService {
           disbableImpersonation: false,
         },
       ]);
-
-      logs.push({ teamData });
-      logs.push({ teamError });
 
       // We also need to create the membership in the parent org if it exists
       if (parentId) {
@@ -220,7 +218,6 @@ export class OAuthClientUsersService {
       createdUsers.push(createdUser);
     }
 
-    return logs;
     return createdUsers;
   }
 

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Profile, Team, User } from "@prisma/client";
 
+import { supabase } from "../../config/supabase";
 import { CreateManagedUserInput } from "../users/inputs/create-managed-user.input";
 import { UpdateManagedUserInput } from "../users/inputs/update-managed-user.input";
 
@@ -30,16 +31,18 @@ export class UsersRepository {
     //   },
     // });
   }
-  // TODO: PrismaWriteService
   async addToOAuthClient(userId: number, oAuthClientId: string) {
-    // return this.dbWrite.prisma.user.update({
-    //   data: {
-    //     platformOAuthClients: {
-    //       connect: { id: oAuthClientId },
-    //     },
-    //   },
-    //   where: { id: userId },
-    // });
+    const { data } = await supabase
+      .from("users")
+      .update({
+        platformOAuthClients: {
+          id: oAuthClientId,
+        },
+      })
+      .eq("id", userId)
+      .select("*");
+
+    return data;
   }
   // TODO: PrismaReadService
   async findById(userId: number) {
@@ -118,14 +121,12 @@ export class UsersRepository {
     //   },
     // });
   }
-  // TODO: PrismaReadService
+
   async findByEmail(email: string) {
-    // return this.dbRead.prisma.user.findUnique({
-    //   where: {
-    //     email,
-    //   },
-    // });
+    const { data: user } = await supabase.from("users").select("*").eq("email", email).limit(1).single();
+    return user;
   }
+
   // TODO: PrismaReadService
   async findByEmailWithProfile(email: string) {
     // return this.dbRead.prisma.user.findUnique({
@@ -165,13 +166,13 @@ export class UsersRepository {
     //   skip: cursor,
     // });
   }
-  // TODO: PrismaWriteService
+
   async update(userId: number, updateData: UpdateManagedUserInput) {
-    // this.formatInput(updateData);
-    // return this.dbWrite.prisma.user.update({
-    //   where: { id: userId },
-    //   data: updateData,
-    // });
+    this.formatInput(updateData);
+
+    const { data } = await supabase.from("users").update(updateData).eq("id", userId);
+
+    return data;
   }
   // TODO: PrismaWriteService
   async updateUsername(userId: number, newUsername: string) {
