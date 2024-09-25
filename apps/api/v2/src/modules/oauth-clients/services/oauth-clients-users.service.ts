@@ -150,15 +150,9 @@ export class OAuthClientUsersService {
     const createdUsers = [];
     for (let index = 0; index < invitations.length; index++) {
       const invitation = invitations[index];
-      logs.push({ invitation });
       // Weird but orgId is defined only if the invited user email matches orgAutoAcceptEmail
       const { orgId, autoAccept } = orgConnectInfoByUsernameOrEmail[invitation.usernameOrEmail];
       const [emailUser, emailDomain] = invitation.usernameOrEmail.split("@");
-
-      logs.push({ orgId });
-      logs.push({ autoAccept });
-      logs.push({ emailUser });
-      logs.push({ emailDomain });
 
       // An org member can't change username during signup, so we set the username
       const orgMemberUsername =
@@ -171,10 +165,7 @@ export class OAuthClientUsersService {
 
       const isBecomingAnOrgMember = parentId || isOrg;
 
-      logs.push({ orgMemberUsername });
-      logs.push({ isBecomingAnOrgMember });
-
-      const { data: createdUser } = (await supabase
+      const { data: createdUser, erro: createdUserError } = (await supabase
         .from("users")
         .insert({
           username: isBecomingAnOrgMember ? orgMemberUsername : regularTeamMemberUsername,
@@ -186,28 +177,38 @@ export class OAuthClientUsersService {
           weekStart,
           timeZone,
           organizationId: orgId || null,
-          profiles: orgId
-            ? {
-                createMany: {
-                  data: [
-                    {
-                      uid: ProfileRepository.generateProfileUid(),
-                      username: orgMemberUsername,
-                      organizationId: orgId,
-                    },
-                  ],
-                },
-              }
-            : null,
-          teams: {
-            teamId,
-            role: invitation.role,
-            accepted: autoAccept,
-          },
         })
+        .select()
         .single()) as any;
 
+      const userId = createdUser.id;
+
+      if (orgId) {
+        const { data: profileData, error: profileError } = await supabase.from("Profile").insert([
+          {
+            uid: ProfileRepository.generateProfileUid(),
+            username: orgMemberUsername,
+            organizationId: orgId,
+            userId: userId,
+          },
+        ]);
+        logs.push({ profileData });
+        logs.push({ profileError });
+      }
+
+      const { data: teamData, error: teamError } = await supabase.from("Team").insert([
+        {
+          teamId: teamId,
+          role: invitation.role,
+          accepted: autoAccept,
+          userId: userId,
+        },
+      ]);
+
+      logs.push({ teamData });
+      logs.push({ teamError });
       logs.push({ createdUser });
+      logs.push({ createdUserError });
 
       // We also need to create the membership in the parent org if it exists
       if (parentId) {
