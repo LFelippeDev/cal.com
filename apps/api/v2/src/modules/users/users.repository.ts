@@ -32,7 +32,7 @@ export class UsersRepository {
     // });
   }
   async addToOAuthClient(userId: number, oAuthClientId: string) {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("users")
       .update({
         platformOAuthClients: [oAuthClientId],
@@ -162,22 +162,20 @@ export class UsersRepository {
   }
 
   async update(userId: number, updateData: UpdateManagedUserInput) {
-    this.formatInput(updateData);
+    const { data } = await supabase.from("users").update(updateData).eq("id", userId).select("*").single();
 
-    return updateData;
-
-    const { data, error } = await supabase.from("users").update(updateData).eq("id", userId);
-
-    return error || data;
+    return data;
   }
-  // TODO: PrismaWriteService
+
   async updateUsername(userId: number, newUsername: string) {
-    // return this.dbWrite.prisma.user.update({
-    //   where: { id: userId },
-    //   data: {
-    //     username: newUsername,
-    //   },
-    // });
+    const { data } = await supabase
+      .from("users")
+      .update({ username: newUsername })
+      .eq("id", userId)
+      .select("*")
+      .single();
+
+    return data;
   }
 
   async delete(userId: number): Promise<User> {
