@@ -189,14 +189,9 @@ export class UsersRepository {
       userInput.weekStart = userInput.weekStart;
     }
   }
-  // TODO: PrismaWriteService
-  setDefaultSchedule(userId: number, scheduleId: number) {
-    // return this.dbWrite.prisma.user.update({
-    //   where: { id: userId },
-    //   data: {
-    //     defaultScheduleId: scheduleId,
-    //   },
-    // });
+
+  async setDefaultSchedule(userId: number, scheduleId: number) {
+    await supabase.from("users").update({ defaultScheduleId: scheduleId }).eq("id", userId);
   }
 
   async getUserScheduleDefaultId(userId: number) {
