@@ -159,12 +159,22 @@ export class BookingsController {
       ...otherParams
     } = body;
     try {
+      const { data: eventType } = await supabase
+        .from("EventType")
+        .select("title")
+        .eq("id", req.body.eventTypeId)
+        .single();
+
+      if (!eventType) throw new NotFoundException("Event type not found.");
+
       const { data: booking, error } = await supabase
         .from("Booking")
         .insert({
           ...otherParams,
           uid: bookingUid,
           endTime: end,
+          userId: 44,
+          title: eventType.title,
           startTime: start,
           user: JSON.stringify(user),
           responses: JSON.stringify(responses),
@@ -468,14 +478,12 @@ export class BookingsController {
     const { data: bookingToDelete, error } = await supabase
       .from("Booking")
       .update({
-        status: BookingStatus.CANCELLED,
+        status: BookingStatus.CANCELLED.toLowerCase(),
         cancellationReason,
       })
       .eq("uid", bookingId)
       .select("*")
       .single();
-
-    return { error, bookingToDelete };
 
     if (bookingToDelete?.eventType?.seatsPerTimeSlot)
       await supabase.from("Attendee").delete().eq("bookingId", bookingId).select("*");
@@ -483,7 +491,7 @@ export class BookingsController {
     await supabase
       .from("Booking")
       .update({
-        status: BookingStatus.CANCELLED,
+        status: BookingStatus.CANCELLED.toLowerCase(),
         cancellationReason,
         iCalSequence: bookingToDelete.iCalSequence ? bookingToDelete.iCalSequence : 100,
       })
