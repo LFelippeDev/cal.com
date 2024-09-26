@@ -155,6 +155,7 @@ export class BookingsController {
       hashedLink,
       language,
       metadata,
+      timeZone,
       ...otherParams
     } = body;
     try {
@@ -473,6 +474,8 @@ export class BookingsController {
       .eq("uid", bookingId)
       .select("*")
       .single();
+
+    return { error, bookingToDelete };
 
     if (bookingToDelete?.eventType?.seatsPerTimeSlot)
       await supabase.from("Attendee").delete().eq("bookingId", bookingId).select("*");
