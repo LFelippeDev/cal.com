@@ -32,6 +32,7 @@ import {
 } from "@calcom/platform-libraries";
 import { ApiResponse, CancelBookingInput, GetBookingsInput, Status } from "@calcom/platform-types";
 import { Prisma } from "@calcom/prisma/client";
+import { BookingStatus } from "@calcom/prisma/enums";
 
 import { supabase } from "../../../config/supabase";
 import { API_VERSIONS_VALUES } from "../../../lib/api-versions";
@@ -172,18 +173,10 @@ export class BookingsController {
     if (!bookingId) throw new NotFoundException("Booking ID is required.");
 
     try {
-      req.body.id = parseInt(bookingId);
-      const res = await handleCancelBooking(await this.createNextApiBookingRequest(req, oAuthClientId));
-      if (!res.onlyRemovedAttendee) {
-        void (await this.billingService.cancelUsageByBookingUid(res.bookingUid));
-      }
+      const data = await this.cancelUsageByBookingUid(bookingId);
       return {
         status: SUCCESS_STATUS,
-        data: {
-          bookingId: res.bookingId,
-          bookingUid: res.bookingUid,
-          onlyRemovedAttendee: res.onlyRemovedAttendee,
-        },
+        data,
       };
     } catch (err) {
       this.handleBookingErrors(err);
@@ -364,6 +357,39 @@ export class BookingsController {
         : hasOwnershipOnBooking
         ? []
         : booking.attendees,
+    };
+  }
+
+  private async cancelUsageByBookingUid(bookingId: string): Promise<any> {
+    const { data: bookingToDelete } = await supabase
+      .from("Booking")
+      .update({
+        status: BookingStatus.CANCELLED,
+        cancellationReason: null,
+        cancelledBy: null,
+      })
+      .eq("id", bookingId)
+      .select("*")
+      .single();
+
+    if (bookingToDelete?.eventType?.seatsPerTimeSlot)
+      await supabase.from("Attendee").delete().eq("bookingId", bookingId).select("*");
+
+    await supabase
+      .from("Booking")
+      .update({
+        status: BookingStatus.CANCELLED,
+        cancellationReason: null,
+        cancelledBy: null,
+        iCalSequence: bookingToDelete.iCalSequence || 100,
+      })
+      .eq("uid", bookingToDelete!.recurringEventId as string)
+      .select("*");
+
+    return {
+      onlyRemovedAttendee: false,
+      bookingId: bookingToDelete.id,
+      bookingUid: bookingToDelete.uid,
     };
   }
 
