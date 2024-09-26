@@ -142,11 +142,11 @@ export class BookingsController {
     const { orgSlug, locationUrl } = body;
     req.headers["x-cal-force-slug"] = orgSlug;
     try {
-      const { data: booking } = await supabase.from("Booking").insert(body).select("*").single();
+      const { data: booking, error } = await supabase.from("Booking").insert(body).select("*").single();
 
       return {
         status: SUCCESS_STATUS,
-        data: booking,
+        data: booking || error,
       };
     } catch (err) {
       this.handleBookingErrors(err);
@@ -161,11 +161,11 @@ export class BookingsController {
     @Body() _: CancelBookingInput,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<{ bookingId: number; bookingUid: string; onlyRemovedAttendee: boolean }>> {
-    const oAuthClientId = clientId?.toString();
+    // const oAuthClientId = clientId?.toString();
     if (!bookingId) throw new NotFoundException("Booking ID is required.");
 
     try {
-      const data = await this.cancelUsageByBookingUid(bookingId);
+      const data = await this.cancelUsageByBookingUid(req, bookingId);
       return {
         status: SUCCESS_STATUS,
         data,
@@ -212,15 +212,6 @@ export class BookingsController {
         await this.createNextApiBookingRequest(req, oAuthClientId)
       );
 
-      createdBookings.forEach(async (booking) => {
-        if (booking.userId && booking.uid && booking.startTime) {
-          void (await this.billingService.increaseUsageByUserId(booking.userId, {
-            uid: booking.uid,
-            startTime: booking.startTime,
-          }));
-        }
-      });
-
       return {
         status: SUCCESS_STATUS,
         data: createdBookings,
@@ -243,16 +234,6 @@ export class BookingsController {
       const instantMeeting = await handleInstantMeeting(
         await this.createNextApiBookingRequest(req, oAuthClientId)
       );
-
-      if (instantMeeting.userId && instantMeeting.bookingUid) {
-        const now = new Date();
-        // add a 10 secondes delay to the usage incrementation to give some time to cancel the booking if needed
-        now.setSeconds(now.getSeconds() + 10);
-        void (await this.billingService.increaseUsageByUserId(instantMeeting.userId, {
-          uid: instantMeeting.bookingUid,
-          startTime: now,
-        }));
-      }
 
       return {
         status: SUCCESS_STATUS,
@@ -352,11 +333,13 @@ export class BookingsController {
     };
   }
 
-  private async cancelUsageByBookingUid(bookingId: string): Promise<any> {
+  private async cancelUsageByBookingUid(req: BookingRequest, bookingId: string): Promise<any> {
+    const { cancellationReason, allRemainingBookings, seatReferenceUid } = req.body;
     const { data: bookingToDelete } = await supabase
       .from("Booking")
       .update({
         status: BookingStatus.CANCELLED,
+        cancellationReason,
       })
       .eq("id", bookingId)
       .select("*")
@@ -369,6 +352,7 @@ export class BookingsController {
       .from("Booking")
       .update({
         status: BookingStatus.CANCELLED,
+        cancellationReason,
         iCalSequence: bookingToDelete.iCalSequence ? bookingToDelete.iCalSequence : 100,
       })
       .eq("uid", bookingToDelete!.recurringEventId as string)
