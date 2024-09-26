@@ -142,16 +142,8 @@ export class BookingsController {
     const { orgSlug, locationUrl } = body;
     req.headers["x-cal-force-slug"] = orgSlug;
     try {
-      const booking = await handleNewBooking(
-        await this.createNextApiBookingRequest(req, oAuthClientId, locationUrl)
-      );
-      if (booking.userId && booking.uid && booking.startTime) {
-        void (await this.billingService.increaseUsageByUserId(booking.userId, {
-          uid: booking.uid,
-          startTime: booking.startTime,
-          fromReschedule: booking.fromReschedule,
-        }));
-      }
+      const { data: booking } = await supabase.from("Booking").insert(body).select("*").single();
+
       return {
         status: SUCCESS_STATUS,
         data: booking,
@@ -365,8 +357,6 @@ export class BookingsController {
       .from("Booking")
       .update({
         status: BookingStatus.CANCELLED,
-        cancellationReason: null,
-        cancelledBy: null,
       })
       .eq("id", bookingId)
       .select("*")
@@ -379,8 +369,6 @@ export class BookingsController {
       .from("Booking")
       .update({
         status: BookingStatus.CANCELLED,
-        cancellationReason: null,
-        cancelledBy: null,
         iCalSequence: bookingToDelete.iCalSequence ? bookingToDelete.iCalSequence : 100,
       })
       .eq("uid", bookingToDelete!.recurringEventId as string)
