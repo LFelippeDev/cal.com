@@ -145,7 +145,18 @@ export class BookingsController {
     const oAuthClientId = clientId?.toString();
     const { orgSlug, locationUrl } = body;
     req.headers["x-cal-force-slug"] = orgSlug;
-    const { bookingUid, end, start, eventTypeSlug, user, responses, ...otherParams } = body;
+    const {
+      bookingUid,
+      end,
+      start,
+      eventTypeSlug,
+      user,
+      responses,
+      hashedLink,
+      language,
+      metadata,
+      ...otherParams
+    } = body;
     try {
       const { data: booking, error } = await supabase
         .from("Booking")
@@ -156,6 +167,7 @@ export class BookingsController {
           startTime: start,
           user: JSON.stringify(user),
           responses: JSON.stringify(responses),
+          metadata: JSON.stringify(metadata),
         })
         .select("*")
         .single();
@@ -274,88 +286,91 @@ export class BookingsController {
 
     const customInputsResponses = {} as any;
 
-    // if (reqBody.customInputs && (reqBody.customInputs.length || 0) > 0) {
-    //   reqBody.customInputs.forEach(({ label, value }: any) => {
-    //     customInputsResponses[label] = value;
-    //   });
-    // } else {
-    //   const responses = reqBody.responses || {};
-    //   for (const [fieldName, fieldValue] of Object.entries(responses)) {
-    //     const foundACustomInputForTheResponse = (eventTypeCustomInputs as any).find(
-    //       (input) => slugify(input.label) === fieldName
-    //     );
-    //     if (foundACustomInputForTheResponse) {
-    //       customInputsResponses[foundACustomInputForTheResponse.label] = fieldValue;
-    //     }
-    //   }
-    // }
+    const { data: eventType } = await supabase
+      .from("EventType")
+      .select("*")
+      .eq("id", reqBody.eventTypeId)
+      .single();
 
-    // try {
-    //   const newBookingData: any = {
-    //     uid,
-    //     responses: reqBody.responses === null ? Prisma.JsonNull : reqBody.responses,
-    //     title: `Reunião instantânea com ${invitee[0].name}`,
-    //     startTime: dayjs.utc(reqBody.start).toDate(),
-    //     endTime: dayjs.utc(reqBody.end).toDate(),
-    //     description: reqBody.notes,
-    //     customInputs: isPrismaObjOrUndefined(customInputs),
-    //     status: BookingStatus.AWAITING_HOST,
-    //     references: {
-    //       create: bookingReferenceToCreate,
-    //     },
-    //     location: "integrations:daily",
-    //     eventTypeId: reqBody.eventTypeId,
-    //     metadata: { ...reqBody.metadata, videoCallUrl: `${WEBAPP_URL}/video/${uid}` },
-    //   };
+    if (reqBody.customInputs && (reqBody.customInputs.length || 0) > 0) {
+      reqBody.customInputs.forEach(({ label, value }: any) => {
+        customInputsResponses[label] = value;
+      });
+    } else {
+      const responses = reqBody.responses || {};
+      for (const [fieldName, fieldValue] of Object.entries(responses)) {
+        const foundACustomInputForTheResponse = (eventType.customInputs as any).find(
+          (input: { label: any }) => slugify(input.label) === fieldName
+        );
+        if (foundACustomInputForTheResponse) {
+          customInputsResponses[foundACustomInputForTheResponse.label] = fieldValue;
+        }
+      }
+    }
 
-    //   const { data: newBooking } = await supabase.from("Booking").insert(newBookingData).select("*").single();
+    try {
+      const newBookingData: any = {
+        uid,
+        responses: reqBody.responses === null ? Prisma.JsonNull : reqBody.responses,
+        title: `Reunião instantânea com ${invitee[0].name}`,
+        startTime: dayjs.utc(reqBody.start).toDate(),
+        endTime: dayjs.utc(reqBody.end).toDate(),
+        description: reqBody.notes,
+        customInputs: JSON.stringify(customInputsResponses),
+        status: BookingStatus.AWAITING_HOST,
+        location: "integrations:daily",
+        eventTypeId: reqBody.eventTypeId,
+        metadata: { ...reqBody.metadata, videoCallUrl: `${WEBAPP_URL}/video/${uid}` },
+      };
 
-    //   for (const attendee of attendeesList) {
-    //     await supabase.from("Attendee").insert(attendee);
-    //   }
+      const { data: newBooking } = await supabase.from("Booking").insert(newBookingData).select("*").single();
 
-    //   await supabase.from("Booking").insert(newBookingData).select("*").single();
+      for (const attendee of attendeesList) {
+        await supabase.from("Attendee").insert(attendee);
+      }
 
-    //   const { data: eventType } = (await supabase
-    //     .from("EventType")
-    //     .select("*")
-    //     .eq("id", req.body.eventTypeId)
-    //     .single()) ?? { data: 90 };
+      await supabase.from("Booking").insert(newBookingData).select("*").single();
 
-    //   if (eventType === null || eventType.teamId === null)
-    //     throw new HttpError(400, "Event type is not associated with a team.");
+      const { data: eventType } = (await supabase
+        .from("EventType")
+        .select("*")
+        .eq("id", req.body.eventTypeId)
+        .single()) ?? { data: 90 };
 
-    //   const instantMeetingExpiryTimeOffsetInSeconds = eventType.instantMeetingExpiryTimeOffsetInSeconds ?? 90;
+      if (eventType === null || eventType.teamId === null)
+        throw new HttpError(400, "Event type is not associated with a team.");
 
-    //   const { data: instantMeetingToken } = await supabase
-    //     .from("InstantMeetingToken")
-    //     .insert({
-    //       token,
-    //       expires: new Date(
-    //         (new Date().getTime() + 1000 * instantMeetingExpiryTimeOffsetInSeconds) as number
-    //       ),
-    //       teamId: eventType.teamId,
-    //       bookingId: newBooking.id,
-    //       updatedAt: new Date().toISOString(),
-    //     })
-    //     .select("*")
-    //     .single();
+      const instantMeetingExpiryTimeOffsetInSeconds = eventType.instantMeetingExpiryTimeOffsetInSeconds ?? 90;
 
-    //   const instantMeeting = {
-    //     message: "Success",
-    //     meetingTokenId: instantMeetingToken.id,
-    //     bookingId: newBooking.id,
-    //     bookingUid: newBooking.uid,
-    //     expires: instantMeetingToken.expires,
-    //     userId: newBooking.userId,
-    //   };
-    //   return {
-    //     status: SUCCESS_STATUS,
-    //     data: instantMeeting,
-    //   };
-    // } catch (err) {
-    //   this.handleBookingErrors(err, "instant");
-    // }
+      const { data: instantMeetingToken } = await supabase
+        .from("InstantMeetingToken")
+        .insert({
+          token,
+          expires: new Date(
+            (new Date().getTime() + 1000 * instantMeetingExpiryTimeOffsetInSeconds) as number
+          ),
+          teamId: eventType.teamId,
+          bookingId: newBooking.id,
+          updatedAt: new Date().toISOString(),
+        })
+        .select("*")
+        .single();
+
+      const instantMeeting = {
+        message: "Success",
+        meetingTokenId: instantMeetingToken.id,
+        bookingId: newBooking.id,
+        bookingUid: newBooking.uid,
+        expires: instantMeetingToken.expires,
+        userId: newBooking.userId,
+      };
+      return {
+        status: SUCCESS_STATUS,
+        data: instantMeeting,
+      };
+    } catch (err) {
+      this.handleBookingErrors(err, "instant");
+    }
     throw new InternalServerErrorException("Could not create instant booking.");
   }
 
@@ -455,14 +470,9 @@ export class BookingsController {
         status: BookingStatus.CANCELLED,
         cancellationReason,
       })
-      .eq("id", bookingId)
+      .eq("uid", bookingId)
       .select("*")
       .single();
-
-    return {
-      bookingId: { bookingToDelete, error },
-      bookingUid: "",
-    };
 
     if (bookingToDelete?.eventType?.seatsPerTimeSlot)
       await supabase.from("Attendee").delete().eq("bookingId", bookingId).select("*");
