@@ -141,8 +141,13 @@ export class BookingsController {
     const oAuthClientId = clientId?.toString();
     const { orgSlug, locationUrl } = body;
     req.headers["x-cal-force-slug"] = orgSlug;
+    const { bookingUid, ...otherParams } = body;
     try {
-      const { data: booking, error } = await supabase.from("Booking").insert(body).select("*").single();
+      const { data: booking, error } = await supabase
+        .from("Booking")
+        .insert({ ...otherParams, uid: bookingUid })
+        .select("*")
+        .single();
 
       return {
         status: SUCCESS_STATUS,
@@ -334,7 +339,7 @@ export class BookingsController {
   }
 
   private async cancelUsageByBookingUid(req: BookingRequest, bookingId: string): Promise<any> {
-    const { cancellationReason, allRemainingBookings, seatReferenceUid } = req.body;
+    const { cancellationReason } = req.body;
     const { data: bookingToDelete } = await supabase
       .from("Booking")
       .update({
@@ -353,7 +358,7 @@ export class BookingsController {
       .update({
         status: BookingStatus.CANCELLED,
         cancellationReason,
-        iCalSequence: bookingToDelete.iCalSequence ? bookingToDelete.iCalSequence : 100,
+        // iCalSequence: bookingToDelete.iCalSequence ? bookingToDelete.iCalSequence : 100,
       })
       .eq("uid", bookingToDelete!.recurringEventId as string)
       .select("*");
