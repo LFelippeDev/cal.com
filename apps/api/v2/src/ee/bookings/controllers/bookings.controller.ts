@@ -117,19 +117,19 @@ export class BookingsController {
     };
   }
 
-  // @Get("/:bookingUid/reschedule")
-  // async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
-  //   const booking = await this.getBookingReschedule(bookingUid);
+  @Get("/:bookingUid/reschedule")
+  async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
+    const booking = await this.getBookingReschedule(bookingUid);
 
-  //   if (!booking) {
-  //     throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
-  //   }
+    if (!booking) {
+      throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
+    }
 
-  //   return {
-  //     status: SUCCESS_STATUS,
-  //     data: booking,
-  //   };
-  // }
+    return {
+      status: SUCCESS_STATUS,
+      data: booking,
+    };
+  }
 
   @Post("/")
   async createBooking(
@@ -310,65 +310,62 @@ export class BookingsController {
     return bookingInfo;
   }
 
-  // private async getBookingReschedule(uid: string, userId?: number) {
-  //   let rescheduleUid: string | null = null;
+  private async getBookingReschedule(uid: string, userId?: number): Promise<any> {
+    let rescheduleUid: string | null = null;
 
-  //   const theBooking = this.getBookingInfo(uid) as any;
+    const theBooking = this.getBookingInfo(uid) as any;
 
-  //   let bookingSeatReferenceUid: number | null = null;
-  //   let attendeeEmail: string | null = null;
-  //   let hasOwnershipOnBooking = false;
-  //   let bookingSeatData: { description?: string; responses: Prisma.JsonValue } | null = null;
+    let bookingSeatReferenceUid: number | null = null;
+    let attendeeEmail: string | null = null;
+    let hasOwnershipOnBooking = false;
+    let bookingSeatData: { description?: string; responses: Prisma.JsonValue } | null = null;
 
-  //   if (!theBooking) {
-  //     const { data: bookingSeat, error } = await supabase
-  //       .from("BookingSeat")
-  //       .select("*")
-  //       .eq("referenceUid", uid)
-  //       .limit(1)
-  //       .single();
+    if (!theBooking) {
+      const { data: bookingSeat, error } = await supabase
+        .from("BookingSeat")
+        .select("*")
+        .eq("referenceUid", uid)
+        .limit(1)
+        .single();
 
-  //     if (bookingSeat && !error) {
-  //       bookingSeatData = bookingSeat.data as unknown as {
-  //         description?: string;
-  //         responses: Prisma.JsonValue;
-  //       };
-  //       bookingSeatReferenceUid = bookingSeat.id;
-  //       rescheduleUid = bookingSeat.booking.uid;
-  //       attendeeEmail = bookingSeat.attendee.email;
-  //     }
-  //   }
+      if (bookingSeat && !error) {
+        bookingSeatData = bookingSeat.data as any;
+        bookingSeatReferenceUid = bookingSeat.id;
+        rescheduleUid = bookingSeat.booking.uid;
+        attendeeEmail = bookingSeat.attendee.email;
+      }
+    }
 
-  //   if (theBooking && theBooking?.eventType?.seatsPerTimeSlot && bookingSeatReferenceUid === null) {
-  //     const isOwnerOfBooking = theBooking.userId === userId;
+    if (theBooking && theBooking?.eventType?.seatsPerTimeSlot && bookingSeatReferenceUid === null) {
+      const isOwnerOfBooking = theBooking.userId === userId;
 
-  //     const isHostOfEventType = theBooking?.eventType?.hosts.some(
-  //       (host: { userId?: number }) => host.userId === userId
-  //     );
+      const isHostOfEventType = theBooking?.eventType?.hosts.some(
+        (host: { userId?: number }) => host.userId === userId
+      );
 
-  //     const isUserIdInBooking = theBooking.userId === userId;
+      const isUserIdInBooking = theBooking.userId === userId;
 
-  //     if (!isOwnerOfBooking && !isHostOfEventType && !isUserIdInBooking) return null;
-  //     hasOwnershipOnBooking = true;
-  //   }
+      if (!isOwnerOfBooking && !isHostOfEventType && !isUserIdInBooking) return null;
+      hasOwnershipOnBooking = true;
+    }
 
-  //   if (!theBooking && !rescheduleUid) return null;
+    if (!theBooking && !rescheduleUid) return null;
 
-  //   const booking = await this.getBookingInfo(rescheduleUid || uid);
+    const booking = await this.getBookingInfo(rescheduleUid || uid);
 
-  //   if (!booking) return null;
+    if (!booking) return null;
 
-  //   if (bookingSeatReferenceUid) booking["description"] = bookingSeatData?.description ?? null;
+    if (bookingSeatReferenceUid) booking["description"] = bookingSeatData?.description ?? null;
 
-  //   return {
-  //     ...booking,
-  //     attendees: rescheduleUid
-  //       ? booking.attendees.filter((attendee: any) => attendee.email === attendeeEmail)
-  //       : hasOwnershipOnBooking
-  //       ? []
-  //       : booking.attendees,
-  //   };
-  // }
+    return {
+      ...booking,
+      attendees: rescheduleUid
+        ? booking.attendees.filter((attendee: any) => attendee.email === attendeeEmail)
+        : hasOwnershipOnBooking
+        ? []
+        : booking.attendees,
+    };
+  }
 
   private async getOwnerId(req: Request): Promise<number | undefined> {
     try {
