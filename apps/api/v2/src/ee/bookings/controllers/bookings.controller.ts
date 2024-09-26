@@ -381,7 +381,7 @@ export class BookingsController {
         status: BookingStatus.CANCELLED,
         cancellationReason: null,
         cancelledBy: null,
-        iCalSequence: bookingToDelete.iCalSequence || 100,
+        iCalSequence: bookingToDelete.iCalSequence ? bookingToDelete.iCalSequence : 100,
       })
       .eq("uid", bookingToDelete!.recurringEventId as string)
       .select("*");
