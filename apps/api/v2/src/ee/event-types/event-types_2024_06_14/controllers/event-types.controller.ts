@@ -14,13 +14,14 @@ import {
 } from "@nestjs/common";
 import { ApiTags as DocsTags } from "@nestjs/swagger";
 
-import { EVENT_TYPE_READ, EVENT_TYPE_WRITE, SUCCESS_STATUS } from "@calcom/platform-constants";
+import { ERROR_STATUS, EVENT_TYPE_READ, EVENT_TYPE_WRITE, SUCCESS_STATUS } from "@calcom/platform-constants";
 import {
   CreateEventTypeInput_2024_06_14,
   UpdateEventTypeInput_2024_06_14,
   GetEventTypesQuery_2024_06_14,
 } from "@calcom/platform-types";
 
+import { supabase } from "../../../../config/supabase";
 import { VERSION_2024_06_14_VALUE } from "../../../../lib/api-versions";
 import { GetUser } from "../../../../modules/auth/decorators/get-user/get-user.decorator";
 import { Permissions } from "../../../../modules/auth/decorators/permissions/permissions.decorator";
@@ -38,7 +39,7 @@ import { EventTypesService_2024_06_14 } from "../services/event-types.service";
   path: "/v2/event-types",
   version: VERSION_2024_06_14_VALUE,
 })
-@UseGuards(PermissionsGuard)
+// @UseGuards(PermissionsGuard)
 @DocsTags("Event types")
 export class EventTypesController_2024_06_14 {
   constructor(private readonly eventTypesService: EventTypesService_2024_06_14) {}
@@ -81,7 +82,25 @@ export class EventTypesController_2024_06_14 {
   async getEventTypes(
     @Query() queryParams: GetEventTypesQuery_2024_06_14
   ): Promise<GetEventTypesOutput_2024_06_14> {
-    const eventTypes = await this.eventTypesService.getEventTypes(queryParams);
+    const { eventSlug, username, usernames } = queryParams;
+    let supabaseQuery = supabase.from("EventType").select("*");
+
+    switch (true) {
+      case !!username:
+      // supabaseQuery = supabaseQuery.eq("username", username);
+      case !!usernames:
+      // supabaseQuery = supabaseQuery.in("username", usernames as string[]);
+      case !!eventSlug:
+        supabaseQuery = supabaseQuery.eq("slug", eventSlug);
+    }
+
+    const { data: eventTypes, error } = await supabaseQuery;
+
+    if (error)
+      return {
+        status: ERROR_STATUS,
+        data: null,
+      };
 
     return {
       status: SUCCESS_STATUS,
@@ -107,22 +126,34 @@ export class EventTypesController_2024_06_14 {
   }
 
   @Delete("/:eventTypeId")
-  @Permissions([EVENT_TYPE_WRITE])
-  @UseGuards(ApiAuthGuard)
+  // @Permissions([EVENT_TYPE_WRITE])
+  // @UseGuards(ApiAuthGuard)
   async deleteEventType(
     @Param("eventTypeId") eventTypeId: number,
     @GetUser("id") userId: number
   ): Promise<DeleteEventTypeOutput_2024_06_14> {
-    const eventType = await this.eventTypesService.deleteEventType(eventTypeId, userId);
+    const { data: eventType, error } = await supabase
+      .from("EventType")
+      .select("id, slug, title")
+      .eq("id", eventTypeId)
+      .limit(1)
+      .single();
+
+    if (!eventType) {
+      throw new NotFoundException(`Event type with ID=${eventTypeId} does not exist.`);
+    }
+
+    // await supabase.from("EventType").delete().eq("id", eventTypeId);
 
     return {
       status: SUCCESS_STATUS,
-      data: {
-        id: eventType.id,
-        lengthInMinutes: eventType.length,
-        slug: eventType.slug,
-        title: eventType.title,
-      },
+      data: error || eventType,
+      // {
+      //   id: eventType.id,
+      //   lengthInMinutes: eventType.length,
+      //   slug: eventType.slug,
+      //   title: eventType.title,
+      // },
     };
   }
 }
