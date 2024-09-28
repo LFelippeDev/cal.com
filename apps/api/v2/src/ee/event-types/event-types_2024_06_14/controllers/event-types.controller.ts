@@ -116,7 +116,7 @@ export class EventTypesController_2024_06_14 {
     @Param("eventTypeId") eventTypeId: number,
     @Body() body: UpdateEventTypeInput_2024_06_14
   ): Promise<UpdateEventTypeOutput_2024_06_14> {
-    const { data: eventType, error } = await supabase
+    const { data: eventType } = await supabase
       .from("EventType")
       .select("id, slug, title")
       .eq("id", eventTypeId)
@@ -127,12 +127,11 @@ export class EventTypesController_2024_06_14 {
       throw new NotFoundException(`Event type with ID=${eventTypeId} does not exist.`);
     }
 
-    // const eventType = await this.eventTypesService.updateEventType(eventTypeId, body, user);
+    const newEventType = await supabase.from("EventType").update(body).eq("id", eventTypeId).select("*");
 
     return {
       status: SUCCESS_STATUS,
-      data: error || eventType,
-      // data: newEventType,
+      data: newEventType as any,
     };
   }
 
@@ -142,9 +141,9 @@ export class EventTypesController_2024_06_14 {
   async deleteEventType(
     @Param("eventTypeId") eventTypeId: number
   ): Promise<DeleteEventTypeOutput_2024_06_14> {
-    const { data: eventType, error } = await supabase
+    const { data: eventType } = await supabase
       .from("EventType")
-      .select("id, slug, title")
+      .select("id, slug, title, length")
       .eq("id", eventTypeId)
       .limit(1)
       .single();
@@ -153,17 +152,16 @@ export class EventTypesController_2024_06_14 {
       throw new NotFoundException(`Event type with ID=${eventTypeId} does not exist.`);
     }
 
-    // await supabase.from("EventType").delete().eq("id", eventTypeId);
+    await supabase.from("EventType").delete().eq("id", eventTypeId);
 
     return {
       status: SUCCESS_STATUS,
-      data: error || eventType,
-      // {
-      //   id: eventType.id,
-      //   lengthInMinutes: eventType.length,
-      //   slug: eventType.slug,
-      //   title: eventType.title,
-      // },
+      data: {
+        id: eventType.id,
+        lengthInMinutes: eventType.length,
+        slug: eventType.slug,
+        title: eventType.title,
+      },
     };
   }
 }
