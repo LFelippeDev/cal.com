@@ -45,13 +45,26 @@ export class EventTypesController_2024_06_14 {
   constructor(private readonly eventTypesService: EventTypesService_2024_06_14) {}
 
   @Post("/")
-  @Permissions([EVENT_TYPE_WRITE])
-  @UseGuards(ApiAuthGuard)
+  // @Permissions([EVENT_TYPE_WRITE])
+  // @UseGuards(ApiAuthGuard)
   async createEventType(
-    @Body() body: CreateEventTypeInput_2024_06_14,
-    @GetUser() user: UserWithProfile
+    @Body() body: CreateEventTypeInput_2024_06_14
   ): Promise<CreateEventTypeOutput_2024_06_14> {
-    const eventType = await this.eventTypesService.createUserEventType(user, body);
+    // const existsWithSlug = await supabase.from("EventType").select("*").eq("slug", body.slug).limit(1).single();
+    //  this.dbRead.prisma.eventType.findUnique({
+    //   //   where: {
+    //   //     userId_slug: {
+    //   //       userId: userId,
+    //   //       slug: slug,
+    //   //     },
+    //   //   },
+    //   //   include: { users: true, schedule: true },
+    //   // });
+    // if (existsWithSlug) {
+    //   throw new BadRequestException("User already has an event type with this slug.");
+    // }
+    // await this.checkUserOwnsSchedule(userId, body.scheduleId);
+    // const eventType = await this.eventTypesService.createUserEventType(user, body);
 
     return {
       status: SUCCESS_STATUS,
@@ -60,8 +73,8 @@ export class EventTypesController_2024_06_14 {
   }
 
   @Get("/:eventTypeId")
-  @Permissions([EVENT_TYPE_READ])
-  @UseGuards(ApiAuthGuard)
+  // @Permissions([EVENT_TYPE_READ])
+  // @UseGuards(ApiAuthGuard)
   async getEventTypeById(
     @Param("eventTypeId") eventTypeId: string,
     @GetUser() user: UserWithProfile
@@ -109,8 +122,8 @@ export class EventTypesController_2024_06_14 {
   }
 
   @Patch("/:eventTypeId")
-  @Permissions([EVENT_TYPE_WRITE])
-  @UseGuards(ApiAuthGuard)
+  // @Permissions([EVENT_TYPE_WRITE])
+  // @UseGuards(ApiAuthGuard)
   @HttpCode(HttpStatus.OK)
   async updateEventType(
     @Param("eventTypeId") eventTypeId: number,
