@@ -94,20 +94,6 @@ export class BookingsController {
   @Get("/")
   // @UseGuards(ApiAuthGuard)
   // @Permissions([BOOKING_READ])
-  @ApiQuery({ name: "status", type: "string[]", required: false })
-  @ApiQuery({ name: "attendeeEmail", type: "string", required: false })
-  @ApiQuery({ name: "attendeeName", type: "string", required: false })
-  @ApiQuery({ name: "eventTypeIds", type: "string", required: false })
-  @ApiQuery({ name: "eventTypeId", type: "string", required: false })
-  @ApiQuery({ name: "teamsIds", type: "string", required: false })
-  @ApiQuery({ name: "teamId", type: "string", required: false })
-  @ApiQuery({ name: "afterStart", type: "string", required: false })
-  @ApiQuery({ name: "beforeEnd", type: "string", required: false })
-  @ApiQuery({ name: "sortStart", type: "string", required: false })
-  @ApiQuery({ name: "sortEnd", type: "string", required: false })
-  @ApiQuery({ name: "sortCreated", type: "string", required: false })
-  @ApiQuery({ name: "take", type: "number", required: false })
-  @ApiQuery({ name: "skip", type: "number", required: false })
   async getBookings(@Query() queryParams: GetBookingsInput): Promise<GetBookingsOutput> {
     const bookings = await this.getAllUserBookings(queryParams);
 
@@ -438,7 +424,7 @@ export class BookingsController {
       case !!sortCreated:
         supabaseQuery = supabaseQuery.order("createdAt", { ascending: sortCreated === "asc" });
       case !!take:
-        if (skip) supabaseQuery = supabaseQuery.range(skip as number, (take as number) + skip);
+        if (skip) supabaseQuery = supabaseQuery.range(skip as number, (take as number) + skip - 1);
         else supabaseQuery = supabaseQuery.limit(take as number);
     }
 
@@ -446,7 +432,7 @@ export class BookingsController {
 
     if (error || !bookings) return null;
 
-    return bookings as GetBookingsOutput["data"]["bookings"];
+    return error || (bookings as GetBookingsOutput["data"]["bookings"]);
   }
 
   private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"] | null> {
