@@ -207,12 +207,6 @@ class GetBookingsData {
   @Type(() => GetBookingsDataEntry)
   @IsArray()
   bookings!: GetBookingsDataEntry[] | null;
-
-  @IsArray()
-  recurringInfo!: any[];
-
-  @IsInt()
-  nextCursor!: number | null;
 }
 
 export class GetBookingsOutput {

@@ -94,17 +94,26 @@ export class BookingsController {
   @Get("/")
   // @UseGuards(ApiAuthGuard)
   // @Permissions([BOOKING_READ])
-  @ApiQuery({ name: "filters[status]", enum: Status, required: true })
-  @ApiQuery({ name: "limit", type: "number", required: false })
-  @ApiQuery({ name: "cursor", type: "number", required: false })
+  @ApiQuery({ name: "status", type: "string[]", required: false })
+  @ApiQuery({ name: "attendeeEmail", type: "string", required: false })
+  @ApiQuery({ name: "attendeeName", type: "string", required: false })
+  @ApiQuery({ name: "eventTypeIds", type: "string", required: false })
+  @ApiQuery({ name: "eventTypeId", type: "string", required: false })
+  @ApiQuery({ name: "teamsIds", type: "string", required: false })
+  @ApiQuery({ name: "teamId", type: "string", required: false })
+  @ApiQuery({ name: "afterStart", type: "string", required: false })
+  @ApiQuery({ name: "beforeEnd", type: "string", required: false })
+  @ApiQuery({ name: "sortStart", type: "string", required: false })
+  @ApiQuery({ name: "sortEnd", type: "string", required: false })
+  @ApiQuery({ name: "sortCreated", type: "string", required: false })
+  @ApiQuery({ name: "take", type: "number", required: false })
+  @ApiQuery({ name: "skip", type: "number", required: false })
   async getBookings(@Query() queryParams: GetBookingsInput): Promise<GetBookingsOutput> {
-    const { filters, cursor, limit } = queryParams;
-    const bookings = await this.getAllUserBookings({ filters, cursor, limit });
-    const nextCursor = (cursor ?? 0) + (limit ?? 10);
+    const bookings = await this.getAllUserBookings(queryParams);
 
     return {
       status: SUCCESS_STATUS,
-      data: { bookings, nextCursor, recurringInfo: [] },
+      data: { bookings },
     };
   }
 
@@ -386,17 +395,54 @@ export class BookingsController {
   }
 
   private async getAllUserBookings({
-    cursor,
-    filters,
-    limit,
+    afterStart,
+    attendeeEmail,
+    attendeeName,
+    beforeEnd,
+    eventTypeId,
+    eventTypeIds,
+    skip,
+    sortCreated,
+    sortEnd,
+    sortStart,
+    status,
+    take,
+    teamId,
+    teamsIds,
   }: GetBookingsInput): Promise<GetBookingsOutput["data"]["bookings"]> {
-    const range = (cursor ?? 0) + (limit ?? 10) - 1;
-    const { data: bookings, error } = await supabase
-      .from("Booking")
-      .select("*")
-      .eq("status", filters.status)
-      .range(cursor ?? 0, range)
-      .limit(limit ?? 10);
+    let supabaseQuery = supabase.from("Booking").select("*");
+
+    switch (true) {
+      case !!status:
+        supabaseQuery = supabaseQuery.eq("status", status);
+      // case !!attendeeEmail:
+      //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+      // case !!attendeeName:
+      //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+      case !!eventTypeIds:
+        supabaseQuery = supabaseQuery.in("eventTypeId", eventTypeIds as number[]);
+      case !!eventTypeId:
+        supabaseQuery = supabaseQuery.eq("eventTypeId", eventTypeId);
+      // case !!teamsIds:
+      //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+      // case !!teamId:
+      //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+      case !!afterStart:
+        supabaseQuery = supabaseQuery.gt("startTime", afterStart);
+      case !!beforeEnd:
+        supabaseQuery = supabaseQuery.lt("endTime", beforeEnd);
+      case !!sortStart:
+        supabaseQuery = supabaseQuery.order("startTime", { ascending: sortStart === "asc" });
+      case !!sortEnd:
+        supabaseQuery = supabaseQuery.order("endTime", { ascending: sortEnd === "asc" });
+      case !!sortCreated:
+        supabaseQuery = supabaseQuery.order("createdAt", { ascending: sortCreated === "asc" });
+      case !!take:
+        if (skip) supabaseQuery = supabaseQuery.range(skip as number, (take as number) + skip);
+        else supabaseQuery = supabaseQuery.limit(take as number);
+    }
+
+    const { data: bookings, error } = await supabaseQuery;
 
     if (error || !bookings) return null;
 
