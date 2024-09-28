@@ -114,14 +114,25 @@ export class EventTypesController_2024_06_14 {
   @HttpCode(HttpStatus.OK)
   async updateEventType(
     @Param("eventTypeId") eventTypeId: number,
-    @Body() body: UpdateEventTypeInput_2024_06_14,
-    @GetUser() user: UserWithProfile
+    @Body() body: UpdateEventTypeInput_2024_06_14
   ): Promise<UpdateEventTypeOutput_2024_06_14> {
-    const eventType = await this.eventTypesService.updateEventType(eventTypeId, body, user);
+    const { data: eventType, error } = await supabase
+      .from("EventType")
+      .select("id, slug, title")
+      .eq("id", eventTypeId)
+      .limit(1)
+      .single();
+
+    if (!eventType) {
+      throw new NotFoundException(`Event type with ID=${eventTypeId} does not exist.`);
+    }
+
+    // const eventType = await this.eventTypesService.updateEventType(eventTypeId, body, user);
 
     return {
       status: SUCCESS_STATUS,
-      data: eventType,
+      data: error || eventType,
+      // data: newEventType,
     };
   }
 
@@ -129,8 +140,7 @@ export class EventTypesController_2024_06_14 {
   // @Permissions([EVENT_TYPE_WRITE])
   // @UseGuards(ApiAuthGuard)
   async deleteEventType(
-    @Param("eventTypeId") eventTypeId: number,
-    @GetUser("id") userId: number
+    @Param("eventTypeId") eventTypeId: number
   ): Promise<DeleteEventTypeOutput_2024_06_14> {
     const { data: eventType, error } = await supabase
       .from("EventType")
