@@ -430,7 +430,7 @@ export class BookingsController {
 
     const { data: bookings, error } = await supabaseQuery;
 
-    if (error || !bookings) return null;
+    // if (error || !bookings) return null;
 
     return error || (bookings as GetBookingsOutput["data"]["bookings"]);
   }
