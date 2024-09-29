@@ -137,7 +137,7 @@ export class EventTypesController_2024_06_14 {
     if (error)
       return {
         status: ERROR_STATUS,
-        data: null,
+        data: error,
       };
 
     return {
