@@ -100,46 +100,47 @@ export class EventTypesController_2024_06_14 {
     const { eventSlug, username, usernames } = queryParams;
     let supabaseQuery = supabase.from("EventType").select("*");
 
-    switch (true) {
-      case !!username:
-        const { data: user } = await supabase
-          .from("users")
-          .select("id")
-          .eq("username", username)
-          .limit(1)
-          .single();
+    if (!!username) {
+      const { data: user } = await supabase
+        .from("users")
+        .select("id")
+        .eq("username", username)
+        .limit(1)
+        .single();
 
-        if (!user)
-          return {
-            status: SUCCESS_STATUS,
-            data: [],
-          };
-        supabaseQuery = supabaseQuery.eq("userId", user.id);
-      // case !!usernames:
-      //   const { data: users } = await supabase
-      //     .from("users")
-      //     .select("id")
-      //     .in("username", usernames as string[]);
-
-      //   if (!users)
-      //     return {
-      //       status: SUCCESS_STATUS,
-      //       data: [],
-      //     };
-
-      //   const userIds = users.map((user) => user.id);
-
-      //   supabaseQuery = supabaseQuery.in("userId", userIds as string[]);
-      // case !!eventSlug:
-      //   supabaseQuery = supabaseQuery.eq("slug", eventSlug);
+      if (!user)
+        return {
+          status: SUCCESS_STATUS,
+          data: [],
+        };
+      supabaseQuery = supabaseQuery.eq("userId", user.id);
     }
+
+    if (!!usernames) {
+      const { data: users } = await supabase
+        .from("users")
+        .select("id")
+        .in("username", usernames as string[]);
+
+      if (!users)
+        return {
+          status: SUCCESS_STATUS,
+          data: [],
+        };
+
+      const userIds = users.map((user) => user.id);
+
+      supabaseQuery = supabaseQuery.in("userId", userIds as string[]);
+    }
+
+    if (!!eventSlug) supabaseQuery = supabaseQuery.eq("slug", eventSlug);
 
     const { data: eventTypes, error } = await supabaseQuery;
 
     if (error)
       return {
         status: ERROR_STATUS,
-        data: error,
+        data: null,
       };
 
     return {
