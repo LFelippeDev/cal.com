@@ -79,15 +79,20 @@ export class EventTypesController_2024_06_14 {
     @Param("eventTypeId") eventTypeId: string,
     @GetUser() user: UserWithProfile
   ): Promise<GetEventTypeOutput_2024_06_14> {
-    const eventType = await this.eventTypesService.getUserEventType(user.id, Number(eventTypeId));
+    const { data: eventType } = await supabase
+      .from("EventType")
+      .select("id, slug, title")
+      .eq("id", eventTypeId)
+      .limit(1)
+      .single();
 
     if (!eventType) {
-      throw new NotFoundException(`Event type with id ${eventTypeId} not found`);
+      throw new NotFoundException(`Event type with ID=${eventTypeId} does not exist.`);
     }
 
     return {
       status: SUCCESS_STATUS,
-      data: eventType,
+      data: eventType as any,
     };
   }
 
