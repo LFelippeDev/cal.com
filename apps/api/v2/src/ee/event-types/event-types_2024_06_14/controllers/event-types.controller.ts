@@ -78,7 +78,7 @@ export class EventTypesController_2024_06_14 {
   async getEventTypeById(@Param("eventTypeId") eventTypeId: string): Promise<GetEventTypeOutput_2024_06_14> {
     const { data: eventType } = await supabase
       .from("EventType")
-      .select("id, slug, title")
+      .select("*")
       .eq("id", eventTypeId)
       .limit(1)
       .single();
@@ -142,7 +142,11 @@ export class EventTypesController_2024_06_14 {
       throw new NotFoundException(`Event type with ID=${eventTypeId} does not exist.`);
     }
 
-    const newEventType = await supabase.from("EventType").update(body).eq("id", eventTypeId).select("*");
+    const { data: newEventType } = await supabase
+      .from("EventType")
+      .update(body)
+      .eq("id", eventTypeId)
+      .select("*");
 
     return {
       status: SUCCESS_STATUS,
