@@ -75,10 +75,7 @@ export class EventTypesController_2024_06_14 {
   @Get("/:eventTypeId")
   // @Permissions([EVENT_TYPE_READ])
   // @UseGuards(ApiAuthGuard)
-  async getEventTypeById(
-    @Param("eventTypeId") eventTypeId: string,
-    @GetUser() user: UserWithProfile
-  ): Promise<GetEventTypeOutput_2024_06_14> {
+  async getEventTypeById(@Param("eventTypeId") eventTypeId: string): Promise<GetEventTypeOutput_2024_06_14> {
     const { data: eventType } = await supabase
       .from("EventType")
       .select("id, slug, title")
