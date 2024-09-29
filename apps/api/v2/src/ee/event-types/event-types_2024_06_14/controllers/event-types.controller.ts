@@ -127,7 +127,9 @@ export class EventTypesController_2024_06_14 {
             data: [],
           };
 
-        supabaseQuery = supabaseQuery.in("username", usernames as string[]);
+        const userIds = users.map((user) => user.id);
+
+        supabaseQuery = supabaseQuery.in("userId", userIds as string[]);
       case !!eventSlug:
         supabaseQuery = supabaseQuery.eq("slug", eventSlug);
     }
