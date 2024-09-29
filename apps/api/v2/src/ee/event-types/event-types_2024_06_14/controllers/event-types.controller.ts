@@ -115,23 +115,23 @@ export class EventTypesController_2024_06_14 {
             data: [],
           };
         supabaseQuery = supabaseQuery.eq("userId", user.id);
-      case !!usernames:
-        const { data: users } = await supabase
-          .from("users")
-          .select("id")
-          .in("username", usernames as string[]);
+      // case !!usernames:
+      //   const { data: users } = await supabase
+      //     .from("users")
+      //     .select("id")
+      //     .in("username", usernames as string[]);
 
-        if (!users)
-          return {
-            status: SUCCESS_STATUS,
-            data: [],
-          };
+      //   if (!users)
+      //     return {
+      //       status: SUCCESS_STATUS,
+      //       data: [],
+      //     };
 
-        const userIds = users.map((user) => user.id);
+      //   const userIds = users.map((user) => user.id);
 
-        supabaseQuery = supabaseQuery.in("userId", userIds as string[]);
-      case !!eventSlug:
-        supabaseQuery = supabaseQuery.eq("slug", eventSlug);
+      //   supabaseQuery = supabaseQuery.in("userId", userIds as string[]);
+      // case !!eventSlug:
+      //   supabaseQuery = supabaseQuery.eq("slug", eventSlug);
     }
 
     const { data: eventTypes, error } = await supabaseQuery;
