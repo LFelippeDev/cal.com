@@ -134,6 +134,7 @@ export class BookingsController {
       language,
       metadata,
       timeZone,
+      userId,
       ...otherParams
     } = body;
 
@@ -156,7 +157,7 @@ export class BookingsController {
           ...otherParams,
           uid: bookingUid || uid,
           endTime: end,
-          userId: 44,
+          userId,
           title: eventType.title,
           startTime: start,
           user: JSON.stringify(user),
