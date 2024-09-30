@@ -11,6 +11,8 @@ import {
   HttpStatus,
   Delete,
   Query,
+  Headers,
+  BadRequestException,
 } from "@nestjs/common";
 import { ApiTags as DocsTags } from "@nestjs/swagger";
 
@@ -20,6 +22,8 @@ import {
   UpdateEventTypeInput_2024_06_14,
   GetEventTypesQuery_2024_06_14,
 } from "@calcom/platform-types";
+import { SchedulingType } from "@calcom/prisma/enums";
+import { TCreateInputSchema } from "@calcom/trpc/server/routers/viewer/eventTypes/create.schema";
 
 import { supabase } from "../../../../config/supabase";
 import { VERSION_2024_06_14_VALUE } from "../../../../lib/api-versions";
@@ -39,43 +43,55 @@ import { EventTypesService_2024_06_14 } from "../services/event-types.service";
   path: "/v2/event-types",
   version: VERSION_2024_06_14_VALUE,
 })
-// @UseGuards(PermissionsGuard)
 @DocsTags("Event types")
 export class EventTypesController_2024_06_14 {
   constructor(private readonly eventTypesService: EventTypesService_2024_06_14) {}
 
   @Post("/")
-  // @Permissions([EVENT_TYPE_WRITE])
-  // @UseGuards(ApiAuthGuard)
   async createEventType(
-    @Body() body: CreateEventTypeInput_2024_06_14
+    @Body() body: CreateEventTypeInput_2024_06_14,
+    @Headers("apiKey") apiKey: string
   ): Promise<CreateEventTypeOutput_2024_06_14> {
-    // const existsWithSlug = await supabase.from("EventType").select("*").eq("slug", body.slug).limit(1).single();
-    //  this.dbRead.prisma.eventType.findUnique({
-    //   //   where: {
-    //   //     userId_slug: {
-    //   //       userId: userId,
-    //   //       slug: slug,
-    //   //     },
-    //   //   },
-    //   //   include: { users: true, schedule: true },
-    //   // });
-    // if (existsWithSlug) {
-    //   throw new BadRequestException("User already has an event type with this slug.");
-    // }
-    // await this.checkUserOwnsSchedule(userId, body.scheduleId);
-    // const eventType = await this.eventTypesService.createUserEventType(user, body);
+    await this.validateApiKey(apiKey);
+    const userId = body.userId;
+    const scheduleId = body.scheduleId;
+
+    if (!userId) throw new BadRequestException("User ID is required.");
+    if (!scheduleId) throw new BadRequestException("Schedule ID is required.");
+
+    const { data: existsWithSlug } = await supabase
+      .from("EventType")
+      .select("id")
+      .eq("slug", body.slug)
+      .eq("userId", userId)
+      .limit(1)
+      .single();
+
+    if (existsWithSlug) throw new BadRequestException("User already has an event type with this slug.");
+
+    const { data: schedule } = await supabase
+      .from("Schedule")
+      .select("id")
+      .eq("id", scheduleId)
+      .eq("userId", userId)
+      .limit(1)
+      .single();
+
+    if (!schedule)
+      throw new BadRequestException(`User with ID=${userId} does not own schedule with ID=${scheduleId}`);
 
     return {
       status: SUCCESS_STATUS,
-      data: eventType,
+      data: null,
     };
   }
 
   @Get("/:eventTypeId")
-  // @Permissions([EVENT_TYPE_READ])
-  // @UseGuards(ApiAuthGuard)
-  async getEventTypeById(@Param("eventTypeId") eventTypeId: string): Promise<GetEventTypeOutput_2024_06_14> {
+  async getEventTypeById(
+    @Param("eventTypeId") eventTypeId: string,
+    @Headers("apiKey") apiKey: string
+  ): Promise<GetEventTypeOutput_2024_06_14> {
+    await this.validateApiKey(apiKey);
     const { data: eventType } = await supabase
       .from("EventType")
       .select("*")
@@ -95,8 +111,10 @@ export class EventTypesController_2024_06_14 {
 
   @Get("/")
   async getEventTypes(
-    @Query() queryParams: GetEventTypesQuery_2024_06_14
+    @Query() queryParams: GetEventTypesQuery_2024_06_14,
+    @Headers("apiKey") apiKey: string
   ): Promise<GetEventTypesOutput_2024_06_14> {
+    await this.validateApiKey(apiKey);
     const { eventSlug, username, usernames } = queryParams;
     let supabaseQuery = supabase.from("EventType").select("*");
 
@@ -150,13 +168,13 @@ export class EventTypesController_2024_06_14 {
   }
 
   @Patch("/:eventTypeId")
-  // @Permissions([EVENT_TYPE_WRITE])
-  // @UseGuards(ApiAuthGuard)
   @HttpCode(HttpStatus.OK)
   async updateEventType(
     @Param("eventTypeId") eventTypeId: number,
-    @Body() body: UpdateEventTypeInput_2024_06_14
+    @Body() body: UpdateEventTypeInput_2024_06_14,
+    @Headers("apiKey") apiKey: string
   ): Promise<UpdateEventTypeOutput_2024_06_14> {
+    await this.validateApiKey(apiKey);
     const { data: eventType } = await supabase
       .from("EventType")
       .select("id, slug, title")
@@ -181,11 +199,11 @@ export class EventTypesController_2024_06_14 {
   }
 
   @Delete("/:eventTypeId")
-  // @Permissions([EVENT_TYPE_WRITE])
-  // @UseGuards(ApiAuthGuard)
   async deleteEventType(
-    @Param("eventTypeId") eventTypeId: number
+    @Param("eventTypeId") eventTypeId: number,
+    @Headers("apiKey") apiKey: string
   ): Promise<DeleteEventTypeOutput_2024_06_14> {
+    await this.validateApiKey(apiKey);
     const { data: eventType } = await supabase
       .from("EventType")
       .select("id, slug, title, length")
@@ -208,5 +226,114 @@ export class EventTypesController_2024_06_14 {
         title: eventType.title,
       },
     };
+  }
+
+  async createEventTypeHandler(input: TCreateInputSchema & { userId: string }): Promise<any> {
+    const {
+      userId,
+      schedulingType,
+      teamId,
+      metadata,
+      locations: inputLocations,
+      scheduleId,
+      ...rest
+    } = input;
+
+    // const { data: user } = await supabase.from("users").select("*").eq("id", userId).limit(1).single();
+
+    // const isManagedEventType = schedulingType === SchedulingType.MANAGED;
+    // const isOrgAdmin = !!user?.organization?.isOrgAdmin;
+
+    // const locations: EventTypeLocation[] =
+    //   inputLocations && inputLocations.length !== 0 ? inputLocations : await getDefaultLocations(ctx.user);
+
+    // const data = {
+    //   ...rest,
+    //   owner: teamId ? undefined : { connect: { id: userId } },
+    //   metadata: metadata ?? undefined,
+    //   // Only connecting the current user for non-managed event types and non team event types
+    //   users: isManagedEventType || schedulingType ? undefined : { connect: { id: userId } },
+    //   locations,
+    //   schedule: scheduleId ? { connect: { id: scheduleId } } : undefined,
+    // } as any;
+
+    // if (teamId && schedulingType) {
+    //   const { data: hasMembership } = await supabase
+    //     .from("Membership")
+    //     .select("role")
+    //     .eq("userId", userId)
+    //     .eq("teamId", teamId)
+    //     .eq("accepted", true)
+    //     .limit(1)
+    //     .single();
+
+    //   const isSystemAdmin = user.role === "ADMIN";
+
+    //   if (
+    //     !isSystemAdmin &&
+    //     (!hasMembership?.role || !(["ADMIN", "OWNER"].includes(hasMembership.role) || isOrgAdmin))
+    //   ) {
+    //     console.warn(`User ${userId} does not have permission to create this new event type`);
+    //     throw new
+    //   }
+
+    //   data.team = {
+    //     connect: {
+    //       id: teamId,
+    //     },
+    //   };
+    //   data.schedulingType = schedulingType;
+    // }
+
+    // // If we are in an organization & they are not admin & they are not creating an event on a teamID
+    // // Check if evenTypes are locked.
+    // if (user.organizationId && !user?.organization?.isOrgAdmin && !teamId) {
+    //   const orgSettings = await ctx.prisma.organizationSettings.findUnique({
+    //     where: {
+    //       organizationId: user.organizationId,
+    //     },
+    //     select: {
+    //       lockEventTypeCreationForUsers: true,
+    //     },
+    //   });
+
+    //   const orgHasLockedEventTypes = !!orgSettings?.lockEventTypeCreationForUsers;
+    //   if (orgHasLockedEventTypes) {
+    //     console.warn(
+    //       `User ${userId} does not have permission to create this new event type - Locked status: ${orgHasLockedEventTypes}`
+    //     );
+    //     throw new TRPCError({ code: "UNAUTHORIZED" });
+    //   }
+    // }
+
+    // const profile = user.profile;
+    // try {
+    //   const eventType = await EventTypeRepository.create({
+    //     ...data,
+    //     profileId: profile.id,
+    //   });
+    //   return { eventType };
+    // } catch (e) {
+    //   console.warn(e);
+    //   if (e instanceof PrismaClientKnownRequestError) {
+    //     if (e.code === "P2002" && Array.isArray(e.meta?.target) && e.meta?.target.includes("slug")) {
+    //       throw new TRPCError({ code: "BAD_REQUEST", message: "URL Slug already exists for given user." });
+    //     }
+    //   }
+    //   throw new TRPCError({ code: "BAD_REQUEST" });
+    // }
+  }
+
+  async validateApiKey(apiKey: string): Promise<void> {
+    const { data: validatedApiKey } = await supabase
+      .from("ApiKey")
+      .select("id")
+      .eq("id", apiKey)
+      .limit(1)
+      .single();
+
+    if (!validatedApiKey) {
+      throw new NotFoundException(`Api Key with value=${apiKey} does not exist.`);
+    }
   }
 }

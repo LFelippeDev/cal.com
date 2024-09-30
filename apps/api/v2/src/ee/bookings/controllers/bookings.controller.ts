@@ -80,7 +80,6 @@ const DEFAULT_PLATFORM_PARAMS = {
   path: "/v2/bookings",
   version: API_VERSIONS_VALUES,
 })
-@UseGuards(PermissionsGuard)
 @DocsTags("Bookings")
 export class BookingsController {
   private readonly logger = new Logger("BookingsController");
@@ -92,9 +91,11 @@ export class BookingsController {
   ) {}
 
   @Get("/")
-  // @UseGuards(ApiAuthGuard)
-  // @Permissions([BOOKING_READ])
-  async getBookings(@Query() queryParams: GetBookingsInput): Promise<GetBookingsOutput> {
+  async getBookings(
+    @Query() queryParams: GetBookingsInput,
+    @Headers("apiKey") apiKey: string
+  ): Promise<GetBookingsOutput> {
+    await this.validateApiKey(apiKey);
     const bookings = await this.getAllUserBookings(queryParams);
 
     return {
@@ -104,7 +105,11 @@ export class BookingsController {
   }
 
   @Get("/:bookingUid")
-  async getBooking(@Param("bookingUid") bookingUid: string): Promise<GetBookingOutput> {
+  async getBooking(
+    @Param("bookingUid") bookingUid: string,
+    @Headers("apiKey") apiKey: string
+  ): Promise<GetBookingOutput> {
+    await this.validateApiKey(apiKey);
     const bookingInfo = await this.getBookingInfo(bookingUid);
 
     if (!bookingInfo) {
@@ -118,7 +123,11 @@ export class BookingsController {
   }
 
   @Get("/:bookingUid/reschedule")
-  async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
+  async getBookingForReschedule(
+    @Param("bookingUid") bookingUid: string,
+    @Headers("apiKey") apiKey: string
+  ): Promise<ApiResponse<unknown>> {
+    await this.validateApiKey(apiKey);
     const booking = await this.getBookingReschedule(bookingUid);
 
     if (!booking) {
@@ -135,8 +144,10 @@ export class BookingsController {
   async createBooking(
     @Req() req: BookingRequest,
     @Body() body: CreateBookingInput,
+    @Headers("apiKey") apiKey: string,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<Partial<BookingResponse>>> {
+    await this.validateApiKey(apiKey);
     const oAuthClientId = clientId?.toString();
     const { orgSlug, locationUrl } = body;
     req.headers["x-cal-force-slug"] = orgSlug;
@@ -193,8 +204,11 @@ export class BookingsController {
     @Req() req: BookingRequest,
     @Param("bookingId") bookingId: string,
     @Body() _: CancelBookingInput,
+    @Headers("apiKey") apiKey: string,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<{ bookingId: number; bookingUid: string; onlyRemovedAttendee: boolean }>> {
+    await this.validateApiKey(apiKey);
+
     // const oAuthClientId = clientId?.toString();
     if (!bookingId) throw new NotFoundException("Booking ID is required.");
 
@@ -212,13 +226,13 @@ export class BookingsController {
   }
 
   @Post("/:bookingUid/mark-no-show")
-  @Permissions([BOOKING_WRITE])
-  @UseGuards(ApiAuthGuard)
   async markNoShow(
     @GetUser("id") userId: number,
     @Body() body: MarkNoShowInput,
-    @Param("bookingUid") bookingUid: string
+    @Param("bookingUid") bookingUid: string,
+    @Headers("apiKey") apiKey: string
   ): Promise<MarkNoShowOutput> {
+    await this.validateApiKey(apiKey);
     try {
       const markNoShowResponse = await handleMarkNoShow({
         bookingUid: bookingUid,
@@ -238,8 +252,10 @@ export class BookingsController {
   async createRecurringBooking(
     @Req() req: BookingRequest,
     @Body() _: CreateRecurringBookingInput[],
+    @Headers("apiKey") apiKey: string,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<BookingResponse[]>> {
+    await this.validateApiKey(apiKey);
     const oAuthClientId = clientId?.toString();
     try {
       const createdBookings: BookingResponse[] = await handleNewRecurringBooking(
@@ -260,8 +276,10 @@ export class BookingsController {
   async createInstantBooking(
     @Req() req: BookingRequest,
     @Body() _: CreateBookingInput,
+    @Headers("apiKey") apiKey: string,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<Awaited<ReturnType<typeof handleInstantMeeting>>>> {
+    await this.validateApiKey(apiKey);
     const oAuthClientId = clientId?.toString();
     req.userId = (await this.getOwnerId(req)) ?? -1;
     const reqBody = req.body as any;
@@ -398,41 +416,31 @@ export class BookingsController {
   }: GetBookingsInput): Promise<GetBookingsOutput["data"]["bookings"]> {
     let supabaseQuery = supabase.from("Booking").select("*");
 
-    switch (true) {
-      case !!status:
-        supabaseQuery = supabaseQuery.eq("status", status);
-      // case !!attendeeEmail:
-      //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
-      // case !!attendeeName:
-      //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
-      case !!eventTypeIds:
-        supabaseQuery = supabaseQuery.in("eventTypeId", eventTypeIds as number[]);
-      case !!eventTypeId:
-        supabaseQuery = supabaseQuery.eq("eventTypeId", eventTypeId);
-      // case !!teamsIds:
-      //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
-      // case !!teamId:
-      //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
-      case !!afterStart:
-        supabaseQuery = supabaseQuery.gt("startTime", afterStart);
-      case !!beforeEnd:
-        supabaseQuery = supabaseQuery.lt("endTime", beforeEnd);
-      case !!sortStart:
-        supabaseQuery = supabaseQuery.order("startTime", { ascending: sortStart === "asc" });
-      case !!sortEnd:
-        supabaseQuery = supabaseQuery.order("endTime", { ascending: sortEnd === "asc" });
-      case !!sortCreated:
-        supabaseQuery = supabaseQuery.order("createdAt", { ascending: sortCreated === "asc" });
-      case !!take:
-        if (skip) supabaseQuery = supabaseQuery.range(skip as number, (take as number) + skip - 1);
-        else supabaseQuery = supabaseQuery.limit(take as number);
-    }
+    if (!!status) supabaseQuery = supabaseQuery.eq("status", status);
+    // case !!attendeeEmail:
+    //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+    // case !!attendeeName:
+    //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+    if (!!eventTypeIds) supabaseQuery = supabaseQuery.in("eventTypeId", eventTypeIds as number[]);
+    if (!!eventTypeId) supabaseQuery = supabaseQuery.eq("eventTypeId", eventTypeId);
+    // case !!teamsIds:
+    //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+    // case !!teamId:
+    //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+    if (!!afterStart) supabaseQuery = supabaseQuery.gt("startTime", afterStart);
+    if (!!beforeEnd) supabaseQuery = supabaseQuery.lt("endTime", beforeEnd);
+    if (!!sortStart) supabaseQuery = supabaseQuery.order("startTime", { ascending: sortStart === "asc" });
+    if (!!sortEnd) supabaseQuery = supabaseQuery.order("endTime", { ascending: sortEnd === "asc" });
+    if (!!sortCreated) supabaseQuery = supabaseQuery.order("createdAt", { ascending: sortCreated === "asc" });
+    if (!!take)
+      if (skip) supabaseQuery = supabaseQuery.range(skip as number, (take as number) + skip - 1);
+      else supabaseQuery = supabaseQuery.limit(take as number);
 
     const { data: bookings, error } = await supabaseQuery;
 
-    // if (error || !bookings) return null;
+    if (error || !bookings) return null;
 
-    return error || (bookings as GetBookingsOutput["data"]["bookings"]);
+    return bookings as GetBookingsOutput["data"]["bookings"];
   }
 
   private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"] | null> {
@@ -600,5 +608,18 @@ export class BookingsController {
     }
 
     throw new InternalServerErrorException(errMsg);
+  }
+
+  async validateApiKey(apiKey: string): Promise<void> {
+    const { data: validatedApiKey } = await supabase
+      .from("ApiKey")
+      .select("id")
+      .eq("id", apiKey)
+      .limit(1)
+      .single();
+
+    if (!validatedApiKey) {
+      throw new NotFoundException(`Api Key with value=${apiKey} does not exist.`);
+    }
   }
 }
