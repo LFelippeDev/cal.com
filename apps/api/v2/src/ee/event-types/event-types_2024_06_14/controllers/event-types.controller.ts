@@ -1,37 +1,36 @@
 import {
-  Controller,
-  UseGuards,
-  Get,
-  Param,
-  Post,
+  BadRequestException,
   Body,
-  NotFoundException,
-  Patch,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
-  Delete,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
   Query,
-  Headers,
-  BadRequestException,
 } from "@nestjs/common";
 import { ApiTags as DocsTags } from "@nestjs/swagger";
 
-import { ERROR_STATUS, EVENT_TYPE_READ, EVENT_TYPE_WRITE, SUCCESS_STATUS } from "@calcom/platform-constants";
+import { ERROR_STATUS, SUCCESS_STATUS } from "@calcom/platform-constants";
+import {
+  transformApiEventTypeBookingFields,
+  transformApiEventTypeFutureBookingLimits,
+  transformApiEventTypeIntervalLimits,
+  transformApiEventTypeLocations,
+  transformApiEventTypeRecurrence,
+} from "@calcom/platform-libraries";
 import {
   CreateEventTypeInput_2024_06_14,
-  UpdateEventTypeInput_2024_06_14,
   GetEventTypesQuery_2024_06_14,
+  UpdateEventTypeInput_2024_06_14,
 } from "@calcom/platform-types";
 import { SchedulingType } from "@calcom/prisma/enums";
-import { TCreateInputSchema } from "@calcom/trpc/server/routers/viewer/eventTypes/create.schema";
 
 import { supabase } from "../../../../config/supabase";
 import { VERSION_2024_06_14_VALUE } from "../../../../lib/api-versions";
-import { GetUser } from "../../../../modules/auth/decorators/get-user/get-user.decorator";
-import { Permissions } from "../../../../modules/auth/decorators/permissions/permissions.decorator";
-import { ApiAuthGuard } from "../../../../modules/auth/guards/api-auth/api-auth.guard";
-import { PermissionsGuard } from "../../../../modules/auth/guards/permissions/permissions.guard";
-import { UserWithProfile } from "../../../../modules/users/users.repository";
 import { CreateEventTypeOutput_2024_06_14 } from "../outputs/create-event-type.output";
 import { DeleteEventTypeOutput_2024_06_14 } from "../outputs/delete-event-type.output";
 import { GetEventTypeOutput_2024_06_14 } from "../outputs/get-event-type.output";
@@ -78,9 +77,11 @@ export class EventTypesController_2024_06_14 {
     if (!schedule)
       throw new BadRequestException(`User with ID=${userId} does not own schedule with ID=${scheduleId}`);
 
+    const { eventType } = await this.createEventTypeHandler(body);
+
     return {
       status: SUCCESS_STATUS,
-      data: null,
+      data: eventType as CreateEventTypeOutput_2024_06_14["data"],
     };
   }
 
@@ -216,7 +217,38 @@ export class EventTypesController_2024_06_14 {
     };
   }
 
-  async createEventTypeHandler(input: TCreateInputSchema & { userId: string }): Promise<any> {
+  async createEventTypeHandler(body: CreateEventTypeInput_2024_06_14): Promise<any> {
+    const defaultLocations: CreateEventTypeInput_2024_06_14["locations"] = [
+      {
+        type: "integration",
+        integration: "cal-video",
+      },
+    ];
+
+    const {
+      lengthInMinutes,
+      locations,
+      bookingFields,
+      bookingLimitsCount,
+      bookingLimitsDuration,
+      bookingWindow,
+      recurrence,
+      ...rest
+    } = body;
+
+    const eventType = {
+      ...rest,
+      length: lengthInMinutes,
+      locations: transformApiEventTypeLocations(locations || defaultLocations),
+      bookingFields: transformApiEventTypeBookingFields(bookingFields),
+      bookingLimits: bookingLimitsCount ? transformApiEventTypeIntervalLimits(bookingLimitsCount) : undefined,
+      durationLimits: bookingLimitsDuration
+        ? transformApiEventTypeIntervalLimits(bookingLimitsDuration)
+        : undefined,
+      ...transformApiEventTypeFutureBookingLimits(bookingWindow),
+      recurringEvent: recurrence ? transformApiEventTypeRecurrence(recurrence) : undefined,
+    };
+
     const {
       userId,
       schedulingType,
@@ -224,26 +256,31 @@ export class EventTypesController_2024_06_14 {
       metadata,
       locations: inputLocations,
       scheduleId,
-      ...rest
-    } = input;
+      ...dataRest
+    } = eventType;
 
     const { data: user } = await supabase.from("users").select("*").eq("id", userId).limit(1).single();
 
     const isManagedEventType = schedulingType === SchedulingType.MANAGED;
-    // const isOrgAdmin = !!user?.organization?.isOrgAdmin;
 
-    // const locations: EventTypeLocation[] =
-    //   inputLocations && inputLocations.length !== 0 ? inputLocations : await getDefaultLocations(ctx.user);
+    const data = dataRest as any;
 
-    // const data = {
-    //   ...rest,
-    //   owner: teamId ? undefined : { connect: { id: userId } },
-    //   metadata: metadata ?? undefined,
-    //   // Only connecting the current user for non-managed event types and non team event types
-    //   users: isManagedEventType || schedulingType ? undefined : { connect: { id: userId } },
-    //   locations,
-    //   schedule: scheduleId ? { connect: { id: scheduleId } } : undefined,
-    // } as any;
+    const formattedDataWithOwner = teamId ? data : { ...data, owner: userId };
+    const formattedDataWithMetadata = metadata
+      ? { ...formattedDataWithOwner, metadata }
+      : formattedDataWithOwner;
+    // Only connecting the current user for non-managed event types and non team event types
+    const formattedDataWithUserId =
+      isManagedEventType || schedulingType
+        ? formattedDataWithMetadata
+        : { ...formattedDataWithMetadata, userId };
+    const formattedDataWithLocations =
+      inputLocations && inputLocations.length !== 0
+        ? { ...formattedDataWithUserId, locations: inputLocations }
+        : formattedDataWithUserId;
+    const formattedDataWithScheduleId = scheduleId
+      ? { ...formattedDataWithLocations, scheduleId }
+      : formattedDataWithLocations;
 
     if (teamId && schedulingType) {
       const { data: hasMembership } = await supabase
@@ -257,21 +294,13 @@ export class EventTypesController_2024_06_14 {
 
       const isSystemAdmin = user.role === "ADMIN";
 
-      if (
-        !isSystemAdmin &&
-        (!hasMembership?.role || !["ADMIN", "OWNER"].includes(hasMembership.role))
-        // || isOrgAdmin)
-      ) {
+      if (!isSystemAdmin && (!hasMembership?.role || !["ADMIN", "OWNER"].includes(hasMembership.role))) {
         console.warn(`User ${userId} does not have permission to create this new event type`);
         throw new BadRequestException("UNAUTHORIZED");
       }
 
-      // data.team = {
-      //   connect: {
-      //     id: teamId,
-      //   },
-      // };
-      // data.schedulingType = schedulingType;
+      data.teamId = teamId;
+      data.schedulingType = schedulingType;
     }
 
     // If we are in an organization & they are not admin & they are not creating an event on a teamID
@@ -293,21 +322,19 @@ export class EventTypesController_2024_06_14 {
       }
     }
 
-    // const profile = user.profile;
-    // try {
-    //   const eventType = await EventTypeRepository.create({
-    //     ...data,
-    //     profileId: profile.id,
-    //   });
-    //   return { eventType };
-    // } catch (e) {
-    //   console.warn(e);
-    //   if (e instanceof PrismaClientKnownRequestError) {
-    //     if (e.code === "P2002" && Array.isArray(e.meta?.target) && e.meta?.target.includes("slug")) {
-    //       throw new TRPCError({ code: "BAD_REQUEST", message: "URL Slug already exists for given user." });
-    //     }
-    //   }
-    //   throw new TRPCError({ code: "BAD_REQUEST" });
-    // }
+    const profileId = user.movedToProfileId;
+
+    try {
+      const { data: eventType } = await supabase
+        .from("EventType")
+        .insert({ ...formattedDataWithScheduleId, profileId })
+        .select("*")
+        .single();
+
+      return { eventType };
+    } catch (e) {
+      console.warn(e);
+      throw new BadRequestException({ code: "BAD_REQUEST" });
+    }
   }
 }
