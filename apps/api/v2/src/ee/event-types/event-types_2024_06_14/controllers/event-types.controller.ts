@@ -329,13 +329,13 @@ export class EventTypesController_2024_06_14 {
     const profileId = user.movedToProfileId;
 
     try {
-      const { data: eventType } = await supabase
+      const { data: eventType, error } = await supabase
         .from("EventType")
         .insert({ ...formattedDataWithScheduleId, profileId })
         .select("*")
         .single();
 
-      return { eventType };
+      return { eventType: error };
     } catch (e) {
       console.warn(e);
       throw new BadRequestException({ code: "BAD_REQUEST" });
