@@ -50,7 +50,7 @@ export class EventTypesController_2024_06_14 {
   @Post("/")
   async createEventType(
     @Body() body: CreateEventTypeInput_2024_06_14,
-    @Headers("apiKey") apiKey: string
+    @Headers("Authorization") apiKey: string
   ): Promise<CreateEventTypeOutput_2024_06_14> {
     await this.validateApiKey(apiKey);
     const userId = body.userId;
@@ -89,7 +89,7 @@ export class EventTypesController_2024_06_14 {
   @Get("/:eventTypeId")
   async getEventTypeById(
     @Param("eventTypeId") eventTypeId: string,
-    @Headers("apiKey") apiKey: string
+    @Headers("Authorization") apiKey: string
   ): Promise<GetEventTypeOutput_2024_06_14> {
     await this.validateApiKey(apiKey);
     const { data: eventType } = await supabase
@@ -112,7 +112,7 @@ export class EventTypesController_2024_06_14 {
   @Get("/")
   async getEventTypes(
     @Query() queryParams: GetEventTypesQuery_2024_06_14,
-    @Headers("apiKey") apiKey: string
+    @Headers("Authorization") apiKey: string
   ): Promise<GetEventTypesOutput_2024_06_14> {
     // await this.validateApiKey(apiKey);
     const { eventSlug, username, usernames } = queryParams;
@@ -172,7 +172,7 @@ export class EventTypesController_2024_06_14 {
   async updateEventType(
     @Param("eventTypeId") eventTypeId: number,
     @Body() body: UpdateEventTypeInput_2024_06_14,
-    @Headers("apiKey") apiKey: string
+    @Headers("Authorization") apiKey: string
   ): Promise<UpdateEventTypeOutput_2024_06_14> {
     await this.validateApiKey(apiKey);
     const { data: eventType } = await supabase
@@ -201,7 +201,7 @@ export class EventTypesController_2024_06_14 {
   @Delete("/:eventTypeId")
   async deleteEventType(
     @Param("eventTypeId") eventTypeId: number,
-    @Headers("apiKey") apiKey: string
+    @Headers("Authorization") apiKey: string
   ): Promise<DeleteEventTypeOutput_2024_06_14> {
     await this.validateApiKey(apiKey);
     const { data: eventType } = await supabase
@@ -239,9 +239,9 @@ export class EventTypesController_2024_06_14 {
       ...rest
     } = input;
 
-    // const { data: user } = await supabase.from("users").select("*").eq("id", userId).limit(1).single();
+    const { data: user } = await supabase.from("users").select("*").eq("id", userId).limit(1).single();
 
-    // const isManagedEventType = schedulingType === SchedulingType.MANAGED;
+    const isManagedEventType = schedulingType === SchedulingType.MANAGED;
     // const isOrgAdmin = !!user?.organization?.isOrgAdmin;
 
     // const locations: EventTypeLocation[] =
@@ -257,54 +257,53 @@ export class EventTypesController_2024_06_14 {
     //   schedule: scheduleId ? { connect: { id: scheduleId } } : undefined,
     // } as any;
 
-    // if (teamId && schedulingType) {
-    //   const { data: hasMembership } = await supabase
-    //     .from("Membership")
-    //     .select("role")
-    //     .eq("userId", userId)
-    //     .eq("teamId", teamId)
-    //     .eq("accepted", true)
-    //     .limit(1)
-    //     .single();
+    if (teamId && schedulingType) {
+      const { data: hasMembership } = await supabase
+        .from("Membership")
+        .select("role")
+        .eq("userId", userId)
+        .eq("teamId", teamId)
+        .eq("accepted", true)
+        .limit(1)
+        .single();
 
-    //   const isSystemAdmin = user.role === "ADMIN";
+      const isSystemAdmin = user.role === "ADMIN";
 
-    //   if (
-    //     !isSystemAdmin &&
-    //     (!hasMembership?.role || !(["ADMIN", "OWNER"].includes(hasMembership.role) || isOrgAdmin))
-    //   ) {
-    //     console.warn(`User ${userId} does not have permission to create this new event type`);
-    //     throw new
-    //   }
+      if (
+        !isSystemAdmin &&
+        (!hasMembership?.role || !["ADMIN", "OWNER"].includes(hasMembership.role))
+        // || isOrgAdmin)
+      ) {
+        console.warn(`User ${userId} does not have permission to create this new event type`);
+        throw new BadRequestException("UNAUTHORIZED");
+      }
 
-    //   data.team = {
-    //     connect: {
-    //       id: teamId,
-    //     },
-    //   };
-    //   data.schedulingType = schedulingType;
-    // }
+      // data.team = {
+      //   connect: {
+      //     id: teamId,
+      //   },
+      // };
+      // data.schedulingType = schedulingType;
+    }
 
-    // // If we are in an organization & they are not admin & they are not creating an event on a teamID
-    // // Check if evenTypes are locked.
-    // if (user.organizationId && !user?.organization?.isOrgAdmin && !teamId) {
-    //   const orgSettings = await ctx.prisma.organizationSettings.findUnique({
-    //     where: {
-    //       organizationId: user.organizationId,
-    //     },
-    //     select: {
-    //       lockEventTypeCreationForUsers: true,
-    //     },
-    //   });
+    // If we are in an organization & they are not admin & they are not creating an event on a teamID
+    // Check if evenTypes are locked.
+    if (user.organizationId && !user?.organization?.isOrgAdmin && !teamId) {
+      const { data: orgSettings } = await supabase
+        .from("OrganizationSettings")
+        .select("lockEventTypeCreationForUsers")
+        .eq("organizationId", user.organizationId)
+        .limit(1)
+        .single();
 
-    //   const orgHasLockedEventTypes = !!orgSettings?.lockEventTypeCreationForUsers;
-    //   if (orgHasLockedEventTypes) {
-    //     console.warn(
-    //       `User ${userId} does not have permission to create this new event type - Locked status: ${orgHasLockedEventTypes}`
-    //     );
-    //     throw new TRPCError({ code: "UNAUTHORIZED" });
-    //   }
-    // }
+      const orgHasLockedEventTypes = !!orgSettings?.lockEventTypeCreationForUsers;
+      if (orgHasLockedEventTypes) {
+        console.warn(
+          `User ${userId} does not have permission to create this new event type - Locked status: ${orgHasLockedEventTypes}`
+        );
+        throw new BadRequestException({ code: "UNAUTHORIZED" });
+      }
+    }
 
     // const profile = user.profile;
     // try {
