@@ -9,6 +9,9 @@ import {
   IsObject,
   IsEmail,
   ValidateNested,
+  IsInt,
+  Min,
+  IsDate,
 } from "class-validator";
 
 class Location {
@@ -106,4 +109,18 @@ export class CreateBookingInput {
   @IsString()
   @IsOptional()
   locationUrl?: string;
+}
+
+export class RescheduleBookingInput {
+  @IsString()
+  start!: string;
+
+  @IsString()
+  @IsOptional()
+  reschedulingReason?: string;
+
+  @IsInt()
+  @IsOptional()
+  @Min(1)
+  userId?: string;
 }

@@ -47,7 +47,7 @@ import { PermissionsGuard } from "../../../modules/auth/guards/permissions/permi
 import { BillingService } from "../../../modules/billing/services/billing.service";
 import { OAuthClientRepository } from "../../../modules/oauth-clients/oauth-client.repository";
 import { OAuthFlowService } from "../../../modules/oauth-clients/services/oauth-flow.service";
-import { CreateBookingInput } from "../inputs/create-booking.input";
+import { CreateBookingInput, RescheduleBookingInput } from "../inputs/create-booking.input";
 import { CreateRecurringBookingInput } from "../inputs/create-recurring-booking.input";
 import { MarkNoShowInput } from "../inputs/mark-no-show.input";
 import { GetBookingOutput } from "../outputs/get-booking.output";
@@ -114,8 +114,11 @@ export class BookingsController {
   }
 
   @Post("/:bookingUid/reschedule")
-  async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
-    const booking = await this.getBookingReschedule(bookingUid);
+  async getBookingForReschedule(
+    @Param("bookingUid") bookingUid: string,
+    @Body() body: RescheduleBookingInput
+  ): Promise<ApiResponse<unknown>> {
+    const booking = await this.getBookingReschedule(bookingUid, body);
 
     if (!booking) {
       throw new NotFoundException(`Booking with UID=${bookingUid} does not exist.`);
@@ -188,10 +191,8 @@ export class BookingsController {
   async cancelBooking(
     @Req() req: BookingRequest,
     @Param("bookingId") bookingId: string,
-    @Body() _: CancelBookingInput,
-    @Headers(X_CAL_CLIENT_ID) clientId?: string
+    @Body() _: CancelBookingInput
   ): Promise<ApiResponse<{ bookingId: number; bookingUid: string; onlyRemovedAttendee: boolean }>> {
-    // const oAuthClientId = clientId?.toString();
     if (!bookingId) throw new NotFoundException("Booking ID is required.");
 
     try {
@@ -286,10 +287,11 @@ export class BookingsController {
     return bookingInfo;
   }
 
-  private async getBookingReschedule(uid: string, userId?: number): Promise<any> {
+  private async getBookingReschedule(uid: string, body: RescheduleBookingInput): Promise<any> {
+    const { userId, ...data } = body;
     let rescheduleUid: string | null = null;
 
-    const theBooking = this.getBookingInfo(uid) as any;
+    let theBooking = this.getBookingInfo(uid) as any;
 
     let bookingSeatReferenceUid: number | null = null;
     let attendeeEmail: string | null = null;
@@ -297,6 +299,16 @@ export class BookingsController {
     let bookingSeatData: { description?: string; responses: Prisma.JsonValue } | null = null;
 
     if (!theBooking) {
+      const { data: booking } = await supabase
+        .from("Booking")
+        .update(data)
+        .eq("uid", uid)
+        .select("*")
+        .limit(1)
+        .single();
+
+      theBooking = booking;
+
       const { data: bookingSeat, error } = await supabase
         .from("BookingSeat")
         .select("*")
@@ -325,27 +337,23 @@ export class BookingsController {
       hasOwnershipOnBooking = true;
     }
 
-    if (!theBooking && !rescheduleUid) return null;
+    if (!theBooking) return null;
 
-    const booking = await this.getBookingInfo(rescheduleUid || uid);
-
-    if (!booking) return null;
-
-    if (bookingSeatReferenceUid) booking["description"] = bookingSeatData?.description ?? null;
+    if (bookingSeatReferenceUid) theBooking["description"] = bookingSeatData?.description ?? null;
 
     return {
-      ...booking,
+      ...theBooking,
       attendees: rescheduleUid
-        ? booking.attendees.filter((attendee: any) => attendee.email === attendeeEmail)
+        ? theBooking.attendees.filter((attendee: any) => attendee.email === attendeeEmail)
         : hasOwnershipOnBooking
         ? []
-        : booking.attendees,
+        : theBooking.attendees,
     };
   }
 
   private async cancelUsageByBookingUid(req: BookingRequest, bookingId: string): Promise<any> {
     const { cancellationReason } = req.body;
-    const { data: bookingToDelete, error } = await supabase
+    const { data: bookingToDelete } = await supabase
       .from("Booking")
       .update({
         status: BookingStatus.CANCELLED.toLowerCase(),
@@ -403,20 +411,6 @@ export class BookingsController {
       this.logger.error(err);
       return res;
     }
-  }
-
-  private async createNextApiBookingRequest(
-    req: BookingRequest,
-    oAuthClientId?: string,
-    platformBookingLocation?: string
-  ): Promise<NextApiRequest & { userId?: number } & OAuthRequestParams> {
-    const userId = (await this.getOwnerId(req)) ?? -1;
-    const oAuthParams = oAuthClientId
-      ? await this.getOAuthClientsParams(oAuthClientId)
-      : DEFAULT_PLATFORM_PARAMS;
-    Object.assign(req, { userId, ...oAuthParams, platformBookingLocation });
-    req.body = { ...req.body, noEmail: !oAuthParams.arePlatformEmailsEnabled };
-    return req as unknown as NextApiRequest & { userId?: number } & OAuthRequestParams;
   }
 
   private handleBookingErrors(
