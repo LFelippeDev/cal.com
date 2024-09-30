@@ -27,7 +27,7 @@ import { UpdateMeOutput } from "./outputs/update-me.output";
 @UseGuards(ApiAuthGuard, PermissionsGuard)
 @DocsTags("Me")
 export class MeController {
-  @Get("/")
+  @Get("/:userId")
   @UseGuards(ApiAuthGuard)
   async getMe(@Param() userId: string): Promise<GetMeOutput> {
     if (!userId) throw new InternalServerErrorException("User Id is required");
@@ -42,7 +42,7 @@ export class MeController {
     };
   }
 
-  @Patch("/")
+  @Patch("/:userId")
   @UseGuards(ApiAuthGuard)
   async updateMe(
     @Param() userId: string,
