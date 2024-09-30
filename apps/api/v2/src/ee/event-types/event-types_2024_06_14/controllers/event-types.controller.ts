@@ -1,4 +1,3 @@
-import { ApiAuthGuard } from "@/modules/auth/guards/api-auth/api-auth.guard";
 import {
   BadRequestException,
   Body,
@@ -33,6 +32,7 @@ import { SchedulingType } from "@calcom/prisma/enums";
 
 import { supabase } from "../../../../config/supabase";
 import { VERSION_2024_06_14_VALUE } from "../../../../lib/api-versions";
+import { ApiAuthGuard } from "../../../../modules/auth/guards/api-auth/api-auth.guard";
 import { CreateEventTypeOutput_2024_06_14 } from "../outputs/create-event-type.output";
 import { DeleteEventTypeOutput_2024_06_14 } from "../outputs/delete-event-type.output";
 import { GetEventTypeOutput_2024_06_14 } from "../outputs/get-event-type.output";

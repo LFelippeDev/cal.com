@@ -13,42 +13,22 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { ApiQuery, ApiTags as DocsTags } from "@nestjs/swagger";
-import { User } from "@prisma/client";
-import { randomBytes } from "crypto";
+import { ApiTags as DocsTags } from "@nestjs/swagger";
 import { Request } from "express";
-import { NextApiRequest } from "next/types";
 
-import dayjs from "@calcom/dayjs";
-import { WEBAPP_URL } from "@calcom/lib/constants";
-import { BOOKING_READ, BOOKING_WRITE, SUCCESS_STATUS, X_CAL_CLIENT_ID } from "@calcom/platform-constants";
-import {
-  BookingResponse,
-  HttpError,
-  getAllUserBookings,
-  getBookingForReschedule,
-  handleCancelBooking,
-  handleInstantMeeting,
-  handleMarkNoShow,
-  handleNewBooking,
-  handleNewRecurringBooking,
-  slugify,
-} from "@calcom/platform-libraries";
-import { ApiResponse, CancelBookingInput, GetBookingsInput, Status } from "@calcom/platform-types";
+import { SUCCESS_STATUS, X_CAL_CLIENT_ID } from "@calcom/platform-constants";
+import { BookingResponse, HttpError, handleMarkNoShow } from "@calcom/platform-libraries";
+import { ApiResponse, CancelBookingInput, GetBookingsInput } from "@calcom/platform-types";
 import { Prisma } from "@calcom/prisma/client";
 import { BookingStatus } from "@calcom/prisma/enums";
 
 import { supabase } from "../../../config/supabase";
 import { API_VERSIONS_VALUES } from "../../../lib/api-versions";
 import { GetUser } from "../../../modules/auth/decorators/get-user/get-user.decorator";
-import { Permissions } from "../../../modules/auth/decorators/permissions/permissions.decorator";
 import { ApiAuthGuard } from "../../../modules/auth/guards/api-auth/api-auth.guard";
-import { PermissionsGuard } from "../../../modules/auth/guards/permissions/permissions.guard";
-import { BillingService } from "../../../modules/billing/services/billing.service";
 import { OAuthClientRepository } from "../../../modules/oauth-clients/oauth-client.repository";
 import { OAuthFlowService } from "../../../modules/oauth-clients/services/oauth-flow.service";
 import { CreateBookingInput, RescheduleBookingInput } from "../inputs/create-booking.input";
-import { CreateRecurringBookingInput } from "../inputs/create-recurring-booking.input";
 import { MarkNoShowInput } from "../inputs/mark-no-show.input";
 import { GetBookingOutput } from "../outputs/get-booking.output";
 import { GetBookingsOutput } from "../outputs/get-bookings.output";
@@ -90,6 +70,7 @@ export class BookingsController {
   ) {}
 
   @Get("/")
+  @UseGuards(ApiAuthGuard)
   async getBookings(@Query() queryParams: GetBookingsInput): Promise<GetBookingsOutput> {
     const bookings = await this.getAllUserBookings(queryParams);
 
@@ -100,6 +81,7 @@ export class BookingsController {
   }
 
   @Get("/:bookingUid")
+  @UseGuards(ApiAuthGuard)
   async getBooking(@Param("bookingUid") bookingUid: string): Promise<GetBookingOutput> {
     const bookingInfo = await this.getBookingInfo(bookingUid);
 
@@ -114,6 +96,7 @@ export class BookingsController {
   }
 
   @Post("/:bookingUid/reschedule")
+  @UseGuards(ApiAuthGuard)
   async getBookingForReschedule(
     @Param("bookingUid") bookingUid: string,
     @Body() body: RescheduleBookingInput
@@ -131,6 +114,7 @@ export class BookingsController {
   }
 
   @Post("/")
+  @UseGuards(ApiAuthGuard)
   async createBooking(
     @Req() req: BookingRequest,
     @Body() body: CreateBookingInput,
@@ -188,6 +172,7 @@ export class BookingsController {
   }
 
   @Post("/:bookingId/cancel")
+  @UseGuards(ApiAuthGuard)
   async cancelBooking(
     @Req() req: BookingRequest,
     @Param("bookingId") bookingId: string,
@@ -209,6 +194,7 @@ export class BookingsController {
   }
 
   @Post("/:bookingUid/mark-absent")
+  @UseGuards(ApiAuthGuard)
   async markAbsent(
     @GetUser("id") userId: number,
     @Body() body: MarkNoShowInput,
