@@ -49,10 +49,8 @@ export class EventTypesController_2024_06_14 {
 
   @Post("/")
   async createEventType(
-    @Body() body: CreateEventTypeInput_2024_06_14,
-    @Headers("Authorization") apiKey: string
+    @Body() body: CreateEventTypeInput_2024_06_14
   ): Promise<CreateEventTypeOutput_2024_06_14> {
-    await this.validateApiKey(apiKey);
     const userId = body.userId;
     const scheduleId = body.scheduleId;
 
@@ -87,11 +85,7 @@ export class EventTypesController_2024_06_14 {
   }
 
   @Get("/:eventTypeId")
-  async getEventTypeById(
-    @Param("eventTypeId") eventTypeId: string,
-    @Headers("Authorization") apiKey: string
-  ): Promise<GetEventTypeOutput_2024_06_14> {
-    await this.validateApiKey(apiKey);
+  async getEventTypeById(@Param("eventTypeId") eventTypeId: string): Promise<GetEventTypeOutput_2024_06_14> {
     const { data: eventType } = await supabase
       .from("EventType")
       .select("*")
@@ -111,10 +105,8 @@ export class EventTypesController_2024_06_14 {
 
   @Get("/")
   async getEventTypes(
-    @Query() queryParams: GetEventTypesQuery_2024_06_14,
-    @Headers("Authorization") apiKey: string
+    @Query() queryParams: GetEventTypesQuery_2024_06_14
   ): Promise<GetEventTypesOutput_2024_06_14> {
-    // await this.validateApiKey(apiKey);
     const { eventSlug, username, usernames } = queryParams;
     let supabaseQuery = supabase.from("EventType").select("*");
 
@@ -171,10 +163,8 @@ export class EventTypesController_2024_06_14 {
   @HttpCode(HttpStatus.OK)
   async updateEventType(
     @Param("eventTypeId") eventTypeId: number,
-    @Body() body: UpdateEventTypeInput_2024_06_14,
-    @Headers("Authorization") apiKey: string
+    @Body() body: UpdateEventTypeInput_2024_06_14
   ): Promise<UpdateEventTypeOutput_2024_06_14> {
-    await this.validateApiKey(apiKey);
     const { data: eventType } = await supabase
       .from("EventType")
       .select("id, slug, title")
@@ -200,10 +190,8 @@ export class EventTypesController_2024_06_14 {
 
   @Delete("/:eventTypeId")
   async deleteEventType(
-    @Param("eventTypeId") eventTypeId: number,
-    @Headers("Authorization") apiKey: string
+    @Param("eventTypeId") eventTypeId: number
   ): Promise<DeleteEventTypeOutput_2024_06_14> {
-    await this.validateApiKey(apiKey);
     const { data: eventType } = await supabase
       .from("EventType")
       .select("id, slug, title, length")
@@ -321,18 +309,5 @@ export class EventTypesController_2024_06_14 {
     //   }
     //   throw new TRPCError({ code: "BAD_REQUEST" });
     // }
-  }
-
-  async validateApiKey(apiKey: string): Promise<void> {
-    const { data: validatedApiKey } = await supabase
-      .from("ApiKey")
-      .select("id")
-      .eq("id", apiKey)
-      .limit(1)
-      .single();
-
-    if (!validatedApiKey) {
-      throw new NotFoundException(`Api Key with value=${apiKey} does not exist.`);
-    }
   }
 }

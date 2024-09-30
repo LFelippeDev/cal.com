@@ -86,16 +86,11 @@ export class BookingsController {
 
   constructor(
     private readonly oAuthFlowService: OAuthFlowService,
-    private readonly oAuthClientRepository: OAuthClientRepository,
-    private readonly billingService: BillingService
+    private readonly oAuthClientRepository: OAuthClientRepository
   ) {}
 
   @Get("/")
-  async getBookings(
-    @Query() queryParams: GetBookingsInput,
-    @Headers("Authorization") apiKey: string
-  ): Promise<GetBookingsOutput> {
-    await this.validateApiKey(apiKey);
+  async getBookings(@Query() queryParams: GetBookingsInput): Promise<GetBookingsOutput> {
     const bookings = await this.getAllUserBookings(queryParams);
 
     return {
@@ -105,11 +100,7 @@ export class BookingsController {
   }
 
   @Get("/:bookingUid")
-  async getBooking(
-    @Param("bookingUid") bookingUid: string,
-    @Headers("Authorization") apiKey: string
-  ): Promise<GetBookingOutput> {
-    await this.validateApiKey(apiKey);
+  async getBooking(@Param("bookingUid") bookingUid: string): Promise<GetBookingOutput> {
     const bookingInfo = await this.getBookingInfo(bookingUid);
 
     if (!bookingInfo) {
@@ -122,12 +113,8 @@ export class BookingsController {
     };
   }
 
-  @Get("/:bookingUid/reschedule")
-  async getBookingForReschedule(
-    @Param("bookingUid") bookingUid: string,
-    @Headers("Authorization") apiKey: string
-  ): Promise<ApiResponse<unknown>> {
-    await this.validateApiKey(apiKey);
+  @Post("/:bookingUid/reschedule")
+  async getBookingForReschedule(@Param("bookingUid") bookingUid: string): Promise<ApiResponse<unknown>> {
     const booking = await this.getBookingReschedule(bookingUid);
 
     if (!booking) {
@@ -144,10 +131,8 @@ export class BookingsController {
   async createBooking(
     @Req() req: BookingRequest,
     @Body() body: CreateBookingInput,
-    @Headers("Authorization") apiKey: string,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<Partial<BookingResponse>>> {
-    await this.validateApiKey(apiKey);
     const oAuthClientId = clientId?.toString();
     const { orgSlug, locationUrl } = body;
     req.headers["x-cal-force-slug"] = orgSlug;
@@ -204,11 +189,8 @@ export class BookingsController {
     @Req() req: BookingRequest,
     @Param("bookingId") bookingId: string,
     @Body() _: CancelBookingInput,
-    @Headers("Authorization") apiKey: string,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<{ bookingId: number; bookingUid: string; onlyRemovedAttendee: boolean }>> {
-    await this.validateApiKey(apiKey);
-
     // const oAuthClientId = clientId?.toString();
     if (!bookingId) throw new NotFoundException("Booking ID is required.");
 
@@ -225,14 +207,12 @@ export class BookingsController {
     throw new InternalServerErrorException("Could not cancel booking.");
   }
 
-  @Post("/:bookingUid/mark-no-show")
-  async markNoShow(
+  @Post("/:bookingUid/mark-absent")
+  async markAbsent(
     @GetUser("id") userId: number,
     @Body() body: MarkNoShowInput,
-    @Param("bookingUid") bookingUid: string,
-    @Headers("Authorization") apiKey: string
+    @Param("bookingUid") bookingUid: string
   ): Promise<MarkNoShowOutput> {
-    await this.validateApiKey(apiKey);
     try {
       const markNoShowResponse = await handleMarkNoShow({
         bookingUid: bookingUid,
@@ -246,156 +226,6 @@ export class BookingsController {
       this.handleBookingErrors(err, "no-show");
     }
     throw new InternalServerErrorException("Could not mark no show.");
-  }
-
-  @Post("/recurring")
-  async createRecurringBooking(
-    @Req() req: BookingRequest,
-    @Body() _: CreateRecurringBookingInput[],
-    @Headers("Authorization") apiKey: string,
-    @Headers(X_CAL_CLIENT_ID) clientId?: string
-  ): Promise<ApiResponse<BookingResponse[]>> {
-    await this.validateApiKey(apiKey);
-    const oAuthClientId = clientId?.toString();
-    try {
-      const createdBookings: BookingResponse[] = await handleNewRecurringBooking(
-        await this.createNextApiBookingRequest(req, oAuthClientId)
-      );
-
-      return {
-        status: SUCCESS_STATUS,
-        data: createdBookings,
-      };
-    } catch (err) {
-      this.handleBookingErrors(err, "recurring");
-    }
-    throw new InternalServerErrorException("Could not create recurring booking.");
-  }
-
-  @Post("/instant")
-  async createInstantBooking(
-    @Req() req: BookingRequest,
-    @Body() _: CreateBookingInput,
-    @Headers("Authorization") apiKey: string,
-    @Headers(X_CAL_CLIENT_ID) clientId?: string
-  ): Promise<ApiResponse<Awaited<ReturnType<typeof handleInstantMeeting>>>> {
-    await this.validateApiKey(apiKey);
-    const oAuthClientId = clientId?.toString();
-    req.userId = (await this.getOwnerId(req)) ?? -1;
-    const reqBody = req.body as any;
-    const { bookingUid: uid, name, email, timeZone, language } = reqBody;
-
-    const token = randomBytes(32).toString("hex");
-
-    const invitee = [
-      {
-        email,
-        name,
-        timeZone: timeZone,
-        locale: language ?? "en",
-      },
-    ];
-
-    const guests = (reqBody.guests || []).reduce((guestArray: any, guest: any) => {
-      guestArray.push({
-        email: guest,
-        name: "",
-        timeZone,
-        locale: "en",
-      });
-      return guestArray;
-    }, [] as any[]);
-
-    const attendeesList = [...invitee, ...guests];
-
-    const customInputsResponses = {} as any;
-
-    const { data: eventType } = await supabase
-      .from("EventType")
-      .select("*")
-      .eq("id", reqBody.eventTypeId)
-      .single();
-
-    if (reqBody.customInputs && (reqBody.customInputs.length || 0) > 0) {
-      reqBody.customInputs.forEach(({ label, value }: any) => {
-        customInputsResponses[label] = value;
-      });
-    } else {
-      const responses = reqBody.responses || {};
-      for (const [fieldName, fieldValue] of Object.entries(responses)) {
-        const foundACustomInputForTheResponse = (eventType.customInputs as any).find(
-          (input: { label: any }) => slugify(input.label) === fieldName
-        );
-        if (foundACustomInputForTheResponse) {
-          customInputsResponses[foundACustomInputForTheResponse.label] = fieldValue;
-        }
-      }
-    }
-
-    try {
-      const newBookingData: any = {
-        uid,
-        responses: reqBody.responses === null ? Prisma.JsonNull : reqBody.responses,
-        title: `Reunião instantânea com ${invitee[0].name}`,
-        startTime: dayjs.utc(reqBody.start).toDate(),
-        endTime: dayjs.utc(reqBody.end).toDate(),
-        description: reqBody.notes,
-        customInputs: JSON.stringify(customInputsResponses),
-        status: BookingStatus.AWAITING_HOST,
-        location: "integrations:daily",
-        eventTypeId: reqBody.eventTypeId,
-        metadata: { ...reqBody.metadata, videoCallUrl: `${WEBAPP_URL}/video/${uid}` },
-      };
-
-      const { data: newBooking } = await supabase.from("Booking").insert(newBookingData).select("*").single();
-
-      for (const attendee of attendeesList) {
-        await supabase.from("Attendee").insert(attendee);
-      }
-
-      await supabase.from("Booking").insert(newBookingData).select("*").single();
-
-      const { data: eventType } = (await supabase
-        .from("EventType")
-        .select("*")
-        .eq("id", req.body.eventTypeId)
-        .single()) ?? { data: 90 };
-
-      if (eventType === null || eventType.teamId === null)
-        throw new HttpError(400, "Event type is not associated with a team.");
-
-      const instantMeetingExpiryTimeOffsetInSeconds = eventType.instantMeetingExpiryTimeOffsetInSeconds ?? 90;
-
-      const { data: instantMeetingToken } = await supabase
-        .from("InstantMeetingToken")
-        .insert({
-          token,
-          expires: new Date(
-            (new Date().getTime() + 1000 * instantMeetingExpiryTimeOffsetInSeconds) as number
-          ),
-          teamId: eventType.teamId,
-          bookingId: newBooking.id,
-          updatedAt: new Date().toISOString(),
-        })
-        .select("*")
-        .single();
-
-      const instantMeeting = {
-        message: "Success",
-        meetingTokenId: instantMeetingToken.id,
-        bookingId: newBooking.id,
-        bookingUid: newBooking.uid,
-        expires: instantMeetingToken.expires,
-        userId: newBooking.userId,
-      };
-      return {
-        status: SUCCESS_STATUS,
-        data: instantMeeting,
-      };
-    } catch (err) {
-      this.handleBookingErrors(err, "instant");
-    }
-    throw new InternalServerErrorException("Could not create instant booking.");
   }
 
   private async getAllUserBookings({
@@ -608,18 +438,5 @@ export class BookingsController {
     }
 
     throw new InternalServerErrorException(errMsg);
-  }
-
-  async validateApiKey(apiKey: string): Promise<void> {
-    const { data: validatedApiKey } = await supabase
-      .from("ApiKey")
-      .select("id")
-      .eq("id", apiKey)
-      .limit(1)
-      .single();
-
-    if (!validatedApiKey) {
-      throw new NotFoundException(`Api Key with value=${apiKey} does not exist.`);
-    }
   }
 }
