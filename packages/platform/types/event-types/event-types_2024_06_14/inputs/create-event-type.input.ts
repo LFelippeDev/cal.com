@@ -33,20 +33,24 @@ export const CREATE_EVENT_DESCRIPTION_EXAMPLE =
 
 export class CreateEventTypeInput_2024_06_14 {
   @IsInt()
+  @IsOptional()
   @Min(1)
-  userId!: number;
+  userId?: number;
 
   @IsInt()
+  @IsOptional()
   @Min(1)
   @DocsProperty({ example: CREATE_EVENT_LENGTH_EXAMPLE })
-  lengthInMinutes!: number;
+  lengthInMinutes?: number;
 
   @IsString()
+  @IsOptional()
   @DocsProperty({ example: CREATE_EVENT_TITLE_EXAMPLE })
-  title!: string;
+  title?: string;
 
   @IsString()
-  slug!: string;
+  @IsOptional()
+  slug?: string;
 
   @IsOptional()
   @IsString()
