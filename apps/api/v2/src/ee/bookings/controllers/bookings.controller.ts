@@ -93,7 +93,7 @@ export class BookingsController {
   @Get("/")
   async getBookings(
     @Query() queryParams: GetBookingsInput,
-    @Headers("apiKey") apiKey: string
+    @Headers("Authorization") apiKey: string
   ): Promise<GetBookingsOutput> {
     await this.validateApiKey(apiKey);
     const bookings = await this.getAllUserBookings(queryParams);
@@ -107,7 +107,7 @@ export class BookingsController {
   @Get("/:bookingUid")
   async getBooking(
     @Param("bookingUid") bookingUid: string,
-    @Headers("apiKey") apiKey: string
+    @Headers("Authorization") apiKey: string
   ): Promise<GetBookingOutput> {
     await this.validateApiKey(apiKey);
     const bookingInfo = await this.getBookingInfo(bookingUid);
@@ -125,7 +125,7 @@ export class BookingsController {
   @Get("/:bookingUid/reschedule")
   async getBookingForReschedule(
     @Param("bookingUid") bookingUid: string,
-    @Headers("apiKey") apiKey: string
+    @Headers("Authorization") apiKey: string
   ): Promise<ApiResponse<unknown>> {
     await this.validateApiKey(apiKey);
     const booking = await this.getBookingReschedule(bookingUid);
@@ -144,7 +144,7 @@ export class BookingsController {
   async createBooking(
     @Req() req: BookingRequest,
     @Body() body: CreateBookingInput,
-    @Headers("apiKey") apiKey: string,
+    @Headers("Authorization") apiKey: string,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<Partial<BookingResponse>>> {
     await this.validateApiKey(apiKey);
@@ -204,7 +204,7 @@ export class BookingsController {
     @Req() req: BookingRequest,
     @Param("bookingId") bookingId: string,
     @Body() _: CancelBookingInput,
-    @Headers("apiKey") apiKey: string,
+    @Headers("Authorization") apiKey: string,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<{ bookingId: number; bookingUid: string; onlyRemovedAttendee: boolean }>> {
     await this.validateApiKey(apiKey);
@@ -230,7 +230,7 @@ export class BookingsController {
     @GetUser("id") userId: number,
     @Body() body: MarkNoShowInput,
     @Param("bookingUid") bookingUid: string,
-    @Headers("apiKey") apiKey: string
+    @Headers("Authorization") apiKey: string
   ): Promise<MarkNoShowOutput> {
     await this.validateApiKey(apiKey);
     try {
@@ -252,7 +252,7 @@ export class BookingsController {
   async createRecurringBooking(
     @Req() req: BookingRequest,
     @Body() _: CreateRecurringBookingInput[],
-    @Headers("apiKey") apiKey: string,
+    @Headers("Authorization") apiKey: string,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<BookingResponse[]>> {
     await this.validateApiKey(apiKey);
@@ -276,7 +276,7 @@ export class BookingsController {
   async createInstantBooking(
     @Req() req: BookingRequest,
     @Body() _: CreateBookingInput,
-    @Headers("apiKey") apiKey: string,
+    @Headers("Authorization") apiKey: string,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<Awaited<ReturnType<typeof handleInstantMeeting>>>> {
     await this.validateApiKey(apiKey);

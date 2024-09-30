@@ -3,10 +3,11 @@ import { PassportStrategy } from "@nestjs/passport";
 import type { Request } from "express";
 import { getToken } from "next-auth/jwt";
 
+import { supabase } from "@calcom/lib/server/supabase";
 import { INVALID_ACCESS_TOKEN, X_CAL_CLIENT_ID, X_CAL_SECRET_KEY } from "@calcom/platform-constants";
 
 import { getEnv } from "../../../../env";
-import { hashAPIKey, isApiKey, stripApiKey } from "../../../../lib/api-key";
+import { isApiKey } from "../../../../lib/api-key";
 import { BaseStrategy } from "../../../../lib/passport/strategies/types";
 import { ApiKeyRepository } from "../../../api-key/api-key-repository";
 import { DeploymentsService } from "../../../deployments/deployments.service";
@@ -129,26 +130,16 @@ export class ApiAuthStrategy extends PassportStrategy(BaseStrategy, "api-auth") 
     if (!isLicenseValid) {
       throw new UnauthorizedException("Invalid or missing CALCOM_LICENSE_KEY environment variable");
     }
-    const apiKeyPrefix = getEnv("API_KEY_PREFIX");
-    const strippedApiKey = stripApiKey(apiKey, apiKeyPrefix);
-    const apiKeyHash = hashAPIKey(strippedApiKey);
-    const keyData = await this.apiKeyRepository.getApiKeyFromHash(apiKeyHash);
-    if (!keyData) {
-      throw new UnauthorizedException("Your api key is not valid");
-    }
 
-    const isKeyExpired =
-      keyData.expiresAt && new Date().setHours(0, 0, 0, 0) > keyData.expiresAt.setHours(0, 0, 0, 0);
-    if (isKeyExpired) {
-      throw new UnauthorizedException("Your api key is expired");
-    }
+    const { data: keyData } = await supabase.from("ApiKey").select("*").eq("id", apiKey).limit(1).single();
+
+    if (!keyData) throw new UnauthorizedException("Your api key is not valid");
 
     const apiKeyOwnerId = keyData.userId;
-    if (!apiKeyOwnerId) {
-      throw new UnauthorizedException("No user tied to this apiKey");
-    }
+    if (!apiKeyOwnerId) throw new UnauthorizedException("No user tied to this apiKey");
 
-    const user: UserWithProfile | null = await this.userRepository.findByIdWithProfile(apiKeyOwnerId);
+    const { data: user } = await supabase.from("users").select("*").eq("id", apiKeyOwnerId).limit(1).single();
+
     return user;
   }
 
