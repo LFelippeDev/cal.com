@@ -1,3 +1,4 @@
+import { ApiAuthGuard } from "@/modules/auth/guards/api-auth/api-auth.guard";
 import {
   BadRequestException,
   Body,
@@ -11,6 +12,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiTags as DocsTags } from "@nestjs/swagger";
 
@@ -36,7 +38,6 @@ import { DeleteEventTypeOutput_2024_06_14 } from "../outputs/delete-event-type.o
 import { GetEventTypeOutput_2024_06_14 } from "../outputs/get-event-type.output";
 import { GetEventTypesOutput_2024_06_14 } from "../outputs/get-event-types.output";
 import { UpdateEventTypeOutput_2024_06_14 } from "../outputs/update-event-type.output";
-import { EventTypesService_2024_06_14 } from "../services/event-types.service";
 
 @Controller({
   path: "/v2/event-types",
@@ -44,9 +45,8 @@ import { EventTypesService_2024_06_14 } from "../services/event-types.service";
 })
 @DocsTags("Event types")
 export class EventTypesController_2024_06_14 {
-  constructor(private readonly eventTypesService: EventTypesService_2024_06_14) {}
-
   @Post("/")
+  @UseGuards(ApiAuthGuard)
   async createEventType(
     @Body() body: CreateEventTypeInput_2024_06_14
   ): Promise<CreateEventTypeOutput_2024_06_14> {
@@ -86,6 +86,7 @@ export class EventTypesController_2024_06_14 {
   }
 
   @Get("/:eventTypeId")
+  @UseGuards(ApiAuthGuard)
   async getEventTypeById(@Param("eventTypeId") eventTypeId: string): Promise<GetEventTypeOutput_2024_06_14> {
     const { data: eventType } = await supabase
       .from("EventType")
@@ -105,6 +106,7 @@ export class EventTypesController_2024_06_14 {
   }
 
   @Get("/")
+  @UseGuards(ApiAuthGuard)
   async getEventTypes(
     @Query() queryParams: GetEventTypesQuery_2024_06_14
   ): Promise<GetEventTypesOutput_2024_06_14> {
@@ -161,6 +163,7 @@ export class EventTypesController_2024_06_14 {
   }
 
   @Patch("/:eventTypeId")
+  @UseGuards(ApiAuthGuard)
   @HttpCode(HttpStatus.OK)
   async updateEventType(
     @Param("eventTypeId") eventTypeId: number,
@@ -190,6 +193,7 @@ export class EventTypesController_2024_06_14 {
   }
 
   @Delete("/:eventTypeId")
+  @UseGuards(ApiAuthGuard)
   async deleteEventType(
     @Param("eventTypeId") eventTypeId: number
   ): Promise<DeleteEventTypeOutput_2024_06_14> {
