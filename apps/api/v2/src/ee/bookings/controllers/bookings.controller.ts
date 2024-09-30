@@ -14,6 +14,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags as DocsTags } from "@nestjs/swagger";
+import { randomBytes } from "crypto";
 import { Request } from "express";
 
 import { SUCCESS_STATUS, X_CAL_CLIENT_ID } from "@calcom/platform-constants";
@@ -120,13 +121,12 @@ export class BookingsController {
     @Body() body: CreateBookingInput,
     @Headers(X_CAL_CLIENT_ID) clientId?: string
   ): Promise<ApiResponse<Partial<BookingResponse>>> {
-    const oAuthClientId = clientId?.toString();
-    const { orgSlug, locationUrl } = body;
-    req.headers["x-cal-force-slug"] = orgSlug;
     const {
       bookingUid,
       end,
       start,
+      orgSlug,
+      locationUrl,
       eventTypeSlug,
       user,
       responses,
@@ -136,6 +136,9 @@ export class BookingsController {
       timeZone,
       ...otherParams
     } = body;
+
+    req.headers["x-cal-force-slug"] = orgSlug;
+
     try {
       const { data: eventType } = await supabase
         .from("EventType")
@@ -145,11 +148,13 @@ export class BookingsController {
 
       if (!eventType) throw new NotFoundException("Event type not found.");
 
+      const uid = randomBytes(16).toString("hex");
+
       const { data: booking, error } = await supabase
         .from("Booking")
         .insert({
           ...otherParams,
-          uid: bookingUid,
+          uid: bookingUid || uid,
           endTime: end,
           userId: 44,
           title: eventType.title,
