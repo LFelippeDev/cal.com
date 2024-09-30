@@ -114,7 +114,7 @@ export class EventTypesController_2024_06_14 {
     @Query() queryParams: GetEventTypesQuery_2024_06_14,
     @Headers("apiKey") apiKey: string
   ): Promise<GetEventTypesOutput_2024_06_14> {
-    await this.validateApiKey(apiKey);
+    // await this.validateApiKey(apiKey);
     const { eventSlug, username, usernames } = queryParams;
     let supabaseQuery = supabase.from("EventType").select("*");
 
