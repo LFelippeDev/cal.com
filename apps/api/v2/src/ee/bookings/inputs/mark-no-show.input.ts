@@ -6,7 +6,7 @@ class Attendee {
   email!: string;
 
   @IsBoolean()
-  noShow!: boolean;
+  absent!: boolean;
 }
 
 export class MarkNoShowInput {

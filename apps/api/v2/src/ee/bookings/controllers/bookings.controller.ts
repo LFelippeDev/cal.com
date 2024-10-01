@@ -216,8 +216,8 @@ export class BookingsController {
       const { data: absentedBooking } = await supabase
         .from("Booking")
         .update({ attendees: JSON.stringify(absentAttendee), absentHost: !!body.host })
+        .eq("uid", bookingUid)
         .select("*")
-        .limit(1)
         .single();
 
       return { status: SUCCESS_STATUS, data: absentedBooking };
@@ -388,36 +388,6 @@ export class BookingsController {
       bookingId: bookingToDelete.id,
       bookingUid: bookingToDelete.uid,
     };
-  }
-
-  private async getOwnerId(req: Request): Promise<number | undefined> {
-    try {
-      const accessToken = req.get("Authorization")?.replace("Bearer ", "");
-      if (accessToken) {
-        return this.oAuthFlowService.getOwnerId(accessToken);
-      }
-    } catch (err) {
-      this.logger.error(err);
-    }
-  }
-
-  private async getOAuthClientsParams(clientId: string): Promise<OAuthRequestParams> {
-    const res = DEFAULT_PLATFORM_PARAMS;
-    try {
-      const client = await this.oAuthClientRepository.getOAuthClient(clientId);
-      // fetch oAuthClient from db and use data stored in db to set these values
-      if (client) {
-        res.platformClientId = clientId;
-        res.platformCancelUrl = client.bookingCancelRedirectUri ?? "";
-        res.platformRescheduleUrl = client.bookingRescheduleRedirectUri ?? "";
-        res.platformBookingUrl = client.bookingRedirectUri ?? "";
-        res.arePlatformEmailsEnabled = client.areEmailsEnabled ?? false;
-      }
-      return res;
-    } catch (err) {
-      this.logger.error(err);
-      return res;
-    }
   }
 
   private handleBookingErrors(
