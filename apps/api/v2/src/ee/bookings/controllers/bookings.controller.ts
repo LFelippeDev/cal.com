@@ -300,7 +300,7 @@ export class BookingsController {
 
     const teste = await supabase
       .from("Booking")
-      .update({ ...data, endStart: start })
+      .update({ ...data, startTime: start })
       .eq("uid", uid)
       .select("*")
       .maybeSingle();
