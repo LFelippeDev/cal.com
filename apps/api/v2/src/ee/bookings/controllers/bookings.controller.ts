@@ -298,20 +298,16 @@ export class BookingsController {
     let hasOwnershipOnBooking = false;
     let bookingSeatData: { description?: string; responses: Prisma.JsonValue } | null = null;
 
-    const { data: booking } = await supabase
-      .from("Booking")
-      .update(data)
-      .eq("uid", uid)
-      .select("*")
-      .maybeSingle();
+    const teste = await supabase.from("Booking").update(data).eq("uid", uid).select("*").maybeSingle();
+
+    return teste;
 
     if (!theBooking) {
       const { data: bookingSeat, error } = await supabase
         .from("BookingSeat")
         .select("*")
         .eq("referenceUid", uid)
-        .limit(1)
-        .single();
+        .maybeSingle();
 
       if (bookingSeat && !error) {
         bookingSeatData = bookingSeat.data as any;
@@ -360,7 +356,7 @@ export class BookingsController {
       })
       .eq("uid", bookingId)
       .select("*")
-      .single();
+      .maybeSingle();
 
     if (bookingToDelete?.eventType?.seatsPerTimeSlot)
       await supabase.from("Attendee").delete().eq("bookingId", bookingId).select("*");
