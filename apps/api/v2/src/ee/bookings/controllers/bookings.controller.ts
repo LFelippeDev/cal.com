@@ -211,11 +211,13 @@ export class BookingsController {
         data.attendees && data.attendees.length !== 0
           ? data.attendees.map((attendee: string) => JSON.parse(attendee))
           : [];
-      const absentAttendee = [...attendees, ...body.attendees];
+      const absentAttendee = [...attendees, ...body.attendees].map((attendee: any) =>
+        JSON.stringify(attendee)
+      );
 
       const { data: absentedBooking, error } = await supabase
         .from("Booking")
-        .update({ attendees: JSON.stringify(absentAttendee), absentHost: !!body.host })
+        .update({ attendees: absentAttendee, absentHost: !!body.host })
         .eq("uid", bookingUid)
         .select("*")
         .single();
@@ -289,9 +291,7 @@ export class BookingsController {
     const { userId, ...data } = body;
     let rescheduleUid: string | null = null;
 
-    let theBooking = this.getBookingInfo(uid) as any;
-
-    return theBooking;
+    const theBooking = this.getBookingInfo(uid) as any;
 
     let bookingSeatReferenceUid: number | null = null;
     let attendeeEmail: string | null = null;
@@ -299,15 +299,11 @@ export class BookingsController {
     let bookingSeatData: { description?: string; responses: Prisma.JsonValue } | null = null;
 
     if (!theBooking) {
-      const { data: booking } = await supabase
-        .from("Booking")
-        .update(data)
-        .eq("uid", uid)
-        .select("*")
-        .limit(1)
-        .single();
+      const data = await supabase.from("Booking").update(data).eq("uid", uid).select("*").limit(1).single();
 
-      theBooking = booking;
+      // theBooking = booking;
+
+      return data;
 
       const { data: bookingSeat, error } = await supabase
         .from("BookingSeat")
