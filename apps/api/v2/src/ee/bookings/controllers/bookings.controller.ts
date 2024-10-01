@@ -298,15 +298,13 @@ export class BookingsController {
     let hasOwnershipOnBooking = false;
     let bookingSeatData: { description?: string; responses: Prisma.JsonValue } | null = null;
 
-    const { data: booking, error } = await supabase
+    const { data: booking } = await supabase
       .from("Booking")
       .update(data)
       .eq("uid", uid)
       .select("*")
-      .limit(1)
-      .single();
+      .maybeSingle();
 
-    return error;
     if (!theBooking) {
       const { data: bookingSeat, error } = await supabase
         .from("BookingSeat")
