@@ -215,14 +215,14 @@ export class BookingsController {
         JSON.stringify(attendee)
       );
 
-      const { data: absentedBooking, error } = await supabase
+      const { data: absentedBooking } = await supabase
         .from("Booking")
         .update({ attendees: absentAttendee, absentHost: !!body.host })
         .eq("uid", bookingUid)
         .select("*")
         .single();
 
-      return { status: SUCCESS_STATUS, data: error || absentedBooking };
+      return { status: SUCCESS_STATUS, data: absentedBooking };
     } catch (err) {
       this.handleBookingErrors(err, "no-show");
     }
@@ -282,7 +282,7 @@ export class BookingsController {
       .limit(1)
       .single();
 
-    // if (error || !bookingInfo) return null;
+    if (error || !bookingInfo) return null;
 
     return error || bookingInfo;
   }
@@ -291,20 +291,22 @@ export class BookingsController {
     const { userId, ...data } = body;
     let rescheduleUid: string | null = null;
 
-    const theBooking = this.getBookingInfo(uid) as any;
+    let theBooking = this.getBookingInfo(uid) as any;
 
     let bookingSeatReferenceUid: number | null = null;
     let attendeeEmail: string | null = null;
     let hasOwnershipOnBooking = false;
     let bookingSeatData: { description?: string; responses: Prisma.JsonValue } | null = null;
 
+    const { data: booking } = await supabase
+      .from("Booking")
+      .update(data)
+      .eq("uid", uid)
+      .select("*")
+      .limit(1)
+      .single();
+
     if (!theBooking) {
-      const data = await supabase.from("Booking").update(data).eq("uid", uid).select("*").limit(1).single();
-
-      // theBooking = booking;
-
-      return data;
-
       const { data: bookingSeat, error } = await supabase
         .from("BookingSeat")
         .select("*")
@@ -319,6 +321,8 @@ export class BookingsController {
         attendeeEmail = bookingSeat.attendee.email;
       }
     }
+
+    theBooking = booking;
 
     if (theBooking && theBooking?.eventType?.seatsPerTimeSlot && bookingSeatReferenceUid === null) {
       const isOwnerOfBooking = theBooking.userId === userId;
