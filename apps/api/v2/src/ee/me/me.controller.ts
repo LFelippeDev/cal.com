@@ -29,7 +29,7 @@ import { UpdateMeOutput } from "./outputs/update-me.output";
 export class MeController {
   @Get("/:userId")
   @UseGuards(ApiAuthGuard)
-  async getMe(@Param() userId: string): Promise<GetMeOutput> {
+  async getMe(@Param("userId") userId: string): Promise<GetMeOutput> {
     if (!userId) throw new InternalServerErrorException("User Id is required");
 
     const { data: user } = await supabase.from("users").select("*").eq("id", userId).limit(1).single();
@@ -45,7 +45,7 @@ export class MeController {
   @Patch("/:userId")
   @UseGuards(ApiAuthGuard)
   async updateMe(
-    @Param() userId: string,
+    @Param("userId") userId: string,
     @Body() bodySchedule: UpdateManagedUserInput
   ): Promise<UpdateMeOutput> {
     if (!userId) throw new InternalServerErrorException("User Id is required");
