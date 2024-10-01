@@ -15,6 +15,7 @@ import {
 } from "@nestjs/common";
 import { ApiTags as DocsTags } from "@nestjs/swagger";
 import { randomBytes } from "crypto";
+import dayjs from "dayjs";
 import { Request } from "express";
 
 import { SUCCESS_STATUS, X_CAL_CLIENT_ID } from "@calcom/platform-constants";
@@ -245,33 +246,71 @@ export class BookingsController {
     teamId,
     teamsIds,
   }: GetBookingsInput): Promise<GetBookingsOutput["data"]["bookings"]> {
-    let supabaseQuery = supabase.from("Booking").select("*");
+    const { data: bookings, error } = await supabase
+      .from(
+        "id, uid, hosts, createdAt, status, cancellationReason, reschedulingReason, rescheduledFromUid, startTime, endTime, duration, eventTypeId, attendees, guests, meetingUrl, absentHost"
+      )
+      .select("*");
 
-    if (!!status) supabaseQuery = supabaseQuery.eq("status", status);
-    // case !!attendeeEmail:
-    //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
-    // case !!attendeeName:
-    //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
-    if (!!eventTypeIds) supabaseQuery = supabaseQuery.in("eventTypeId", eventTypeIds as number[]);
-    if (!!eventTypeId) supabaseQuery = supabaseQuery.eq("eventTypeId", eventTypeId);
-    // case !!teamsIds:
-    //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
-    // case !!teamId:
-    //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
-    if (!!afterStart) supabaseQuery = supabaseQuery.gt("startTime", afterStart);
-    if (!!beforeEnd) supabaseQuery = supabaseQuery.lt("endTime", beforeEnd);
-    if (!!sortStart) supabaseQuery = supabaseQuery.order("startTime", { ascending: sortStart === "asc" });
-    if (!!sortEnd) supabaseQuery = supabaseQuery.order("endTime", { ascending: sortEnd === "asc" });
-    if (!!sortCreated) supabaseQuery = supabaseQuery.order("createdAt", { ascending: sortCreated === "asc" });
+    // meetingUrl
+    // hosts
+    // guests
+    // rescheduledFromUid
+
+    const formattedBookings = (bookings as any[]).map((booking) => {
+      const duration = dayjs(booking.endTime as string).diff(dayjs(booking.startTime as string), "minutes");
+
+      return {
+        id: booking.id,
+        uid: booking.uid,
+        status: booking.status,
+        cancellationReason: booking.cancellationReason,
+        reschedulingReason: booking.reschedulingReason,
+        start: booking.startTime,
+        end: booking.endTime,
+        duration,
+        eventTypeId: booking.eventTypeId,
+        attendees: booking.attendees,
+        absentHost: booking.absentHost,
+        created: booking.createdAt,
+      };
+    });
+
+    const filteredBookings = formattedBookings
+      .filter((booking) => !status || booking.status === status)
+      .filter((booking) => !eventTypeId || booking.eventTypeId === eventTypeId)
+      .filter((booking) => !eventTypeIds || eventTypeIds.includes(booking.eventTypeId))
+      .filter((booking) => !afterStart || dayjs(booking.start).isAfter(afterStart))
+      .filter((booking) => !beforeEnd || dayjs(booking.end).isBefore(beforeEnd))
+      .sort((a, b) =>
+        sortStart === "asc" ? dayjs(a.start).diff(dayjs(b.start)) : dayjs(b.start).diff(dayjs(a.start))
+      )
+      .sort((a, b) => (sortEnd === "asc" ? dayjs(a.end).diff(dayjs(b.end)) : dayjs(b.end).diff(dayjs(a.end))))
+      .sort((a, b) =>
+        sortCreated === "asc"
+          ? dayjs(a.created).diff(dayjs(b.created))
+          : dayjs(b.created).diff(dayjs(a.created))
+      );
+
+    let finishFormattedBookings = filteredBookings.map((booking) => {
+      const { created: _, ...rest } = booking;
+      return rest;
+    });
+
     if (!!take)
-      if (skip) supabaseQuery = supabaseQuery.range(skip as number, (take as number) + skip - 1);
-      else supabaseQuery = supabaseQuery.limit(take as number);
+      if (skip) finishFormattedBookings = finishFormattedBookings.slice(skip, (take as number) + skip);
+      else finishFormattedBookings = finishFormattedBookings.slice(0, take as number);
 
-    const { data: bookings, error } = await supabaseQuery;
+    // // case !!attendeeEmail:
+    // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+    // // case !!attendeeName:
+    // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+    // // case !!teamsIds:
+    // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
+    // // case !!teamId:
+    // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
 
-    if (error || !bookings) return null;
-
-    return bookings as GetBookingsOutput["data"]["bookings"];
+    return finishFormattedBookings as unknown as GetBookingsOutput["data"]["bookings"];
   }
 
   private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"] | null> {
