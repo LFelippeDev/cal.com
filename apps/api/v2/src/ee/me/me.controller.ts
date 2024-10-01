@@ -54,7 +54,7 @@ export class MeController {
 
     if (!user) throw new NotFoundException(`User with ID=${userId} does not exist.`);
 
-    const { data: updatedUser } = await supabase
+    const { data: updatedUser, error } = await supabase
       .from("users")
       .update(bodySchedule)
       .eq("id", userId)
@@ -64,7 +64,7 @@ export class MeController {
 
     return {
       status: SUCCESS_STATUS,
-      data: updatedUser,
+      data: error || updatedUser,
     };
   }
 }

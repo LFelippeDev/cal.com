@@ -202,19 +202,22 @@ export class BookingsController {
   @Post("/:bookingUid/mark-absent")
   @UseGuards(ApiAuthGuard)
   async markAbsent(
-    @GetUser("id") userId: number,
     @Body() body: MarkNoShowInput,
     @Param("bookingUid") bookingUid: string
   ): Promise<MarkNoShowOutput> {
     try {
-      const markNoShowResponse = await handleMarkNoShow({
-        bookingUid: bookingUid,
-        attendees: body.attendees,
-        noShowHost: body.noShowHost,
-        userId,
-      });
+      const data = this.getBookingInfo(bookingUid) as any;
+      const attendees = data.attendees.map((attendee: string) => JSON.parse(attendee));
+      const absentAttendee = [...attendees, ...body.attendees];
 
-      return { status: SUCCESS_STATUS, data: markNoShowResponse };
+      const { data: absentedBooking } = await supabase
+        .from("Booking")
+        .update({ attendees: JSON.stringify(absentAttendee), absentHost: !!body.host })
+        .select("*")
+        .limit(1)
+        .single();
+
+      return { status: SUCCESS_STATUS, data: absentedBooking };
     } catch (err) {
       this.handleBookingErrors(err, "no-show");
     }
@@ -276,7 +279,7 @@ export class BookingsController {
 
     if (error || !bookingInfo) return null;
 
-    return bookingInfo;
+    return error || bookingInfo;
   }
 
   private async getBookingReschedule(uid: string, body: RescheduleBookingInput): Promise<any> {
