@@ -213,14 +213,14 @@ export class BookingsController {
           : [];
       const absentAttendee = [...attendees, ...body.attendees];
 
-      const { data: absentedBooking } = await supabase
+      const { data: absentedBooking, error } = await supabase
         .from("Booking")
         .update({ attendees: JSON.stringify(absentAttendee), absentHost: !!body.host })
         .eq("uid", bookingUid)
         .select("*")
         .single();
 
-      return { status: SUCCESS_STATUS, data: absentedBooking };
+      return { status: SUCCESS_STATUS, data: error || absentedBooking };
     } catch (err) {
       this.handleBookingErrors(err, "no-show");
     }
@@ -289,11 +289,9 @@ export class BookingsController {
     const { userId, ...data } = body;
     let rescheduleUid: string | null = null;
 
-    const logs = [];
-
     let theBooking = this.getBookingInfo(uid) as any;
 
-    logs.push(JSON.stringify(theBooking));
+    return theBooking;
 
     let bookingSeatReferenceUid: number | null = null;
     let attendeeEmail: string | null = null;
@@ -309,7 +307,6 @@ export class BookingsController {
         .limit(1)
         .single();
 
-      logs.push(JSON.stringify(booking));
       theBooking = booking;
 
       const { data: bookingSeat, error } = await supabase
@@ -318,8 +315,6 @@ export class BookingsController {
         .eq("referenceUid", uid)
         .limit(1)
         .single();
-
-      logs.push(JSON.stringify(bookingSeat));
 
       if (bookingSeat && !error) {
         bookingSeatData = bookingSeat.data as any;
@@ -345,8 +340,6 @@ export class BookingsController {
     if (!theBooking) return null;
 
     if (bookingSeatReferenceUid) theBooking["description"] = bookingSeatData?.description ?? null;
-
-    return { logs };
 
     return {
       ...theBooking,

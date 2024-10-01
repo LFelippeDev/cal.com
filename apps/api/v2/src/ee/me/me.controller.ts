@@ -50,15 +50,17 @@ export class MeController {
   ): Promise<UpdateMeOutput> {
     if (!userId) throw new InternalServerErrorException("User Id is required");
 
-    const { data: user } = await supabase.from("users").select("*").eq("id", userId).limit(1).single();
+    const { data: user } = await supabase.from("users").select("id").eq("id", userId).limit(1).single();
 
     if (!user) throw new NotFoundException(`User with ID=${userId} does not exist.`);
 
+    await supabase.from("users").update(bodySchedule).eq("id", userId);
+
     const { data: updatedUser, error } = await supabase
       .from("users")
-      .update(bodySchedule)
-      .eq("id", userId)
       .select("*")
+      .eq("id", userId)
+      .limit(1)
       .single();
 
     return {
