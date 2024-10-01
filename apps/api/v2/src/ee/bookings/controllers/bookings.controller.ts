@@ -288,7 +288,7 @@ export class BookingsController {
   }
 
   private async getBookingReschedule(uid: string, body: RescheduleBookingInput): Promise<any> {
-    const { userId, ...data } = body;
+    const { userId, start, ...data } = body;
     let rescheduleUid: string | null = null;
 
     let theBooking = this.getBookingInfo(uid) as any;
@@ -298,9 +298,12 @@ export class BookingsController {
     let hasOwnershipOnBooking = false;
     let bookingSeatData: { description?: string; responses: Prisma.JsonValue } | null = null;
 
-    const teste = await supabase.from("Booking").update(data).eq("uid", uid).select("*").maybeSingle();
-
-    return teste;
+    const { data: booking } = await supabase
+      .from("Booking")
+      .update({ ...data, endStart: start })
+      .eq("uid", uid)
+      .select("*")
+      .maybeSingle();
 
     if (!theBooking) {
       const { data: bookingSeat, error } = await supabase
