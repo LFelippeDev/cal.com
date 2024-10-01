@@ -59,7 +59,6 @@ export class MeController {
       .update(bodySchedule)
       .eq("id", userId)
       .select("*")
-      .limit(1)
       .single();
 
     return {

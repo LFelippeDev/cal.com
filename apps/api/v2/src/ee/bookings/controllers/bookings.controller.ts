@@ -207,7 +207,10 @@ export class BookingsController {
   ): Promise<MarkNoShowOutput> {
     try {
       const data = this.getBookingInfo(bookingUid) as any;
-      const attendees = data.attendees.map((attendee: string) => JSON.parse(attendee));
+      const attendees =
+        data.attendees && data.attendees.length !== 0
+          ? data.attendees.map((attendee: string) => JSON.parse(attendee))
+          : [];
       const absentAttendee = [...attendees, ...body.attendees];
 
       const { data: absentedBooking } = await supabase
@@ -277,7 +280,7 @@ export class BookingsController {
       .limit(1)
       .single();
 
-    if (error || !bookingInfo) return null;
+    // if (error || !bookingInfo) return null;
 
     return error || bookingInfo;
   }
