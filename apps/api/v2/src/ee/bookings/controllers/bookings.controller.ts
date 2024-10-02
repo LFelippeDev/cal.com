@@ -247,7 +247,7 @@ export class BookingsController {
     teamsIds,
   }: GetBookingsInput): Promise<GetBookingsOutput["data"]["bookings"]> {
     const data = await supabase
-      .from("Boooking")
+      .from("Booking")
       .select(
         "id, uid, hosts, createdAt, status, cancellationReason, reschedulingReason, rescheduledFromUid, startTime, endTime, duration, eventTypeId, attendees, guests, meetingUrl, absentHost"
       )
