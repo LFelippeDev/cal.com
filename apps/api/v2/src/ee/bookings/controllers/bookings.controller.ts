@@ -276,39 +276,48 @@ export class BookingsController {
     });
 
     const filteredBookings = formattedBookings
-      .filter((booking) => !status || booking.status === status)
-      .filter((booking) => !eventTypeId || booking.eventTypeId === eventTypeId)
-      .filter((booking) => !eventTypeIds || eventTypeIds.includes(booking.eventTypeId))
-      .filter(
-        (booking) =>
-          !attendeeEmail ||
-          (booking.attendees &&
-            booking.attendees.length > 0 &&
-            booking.attendees.some((attendee: any) => {
-              try {
-                const parsedAttendee = JSON.parse(attendee);
-                return parsedAttendee.email === attendeeEmail;
-              } catch (_) {
-                return false;
-              }
-            }))
-      )
-      .filter(
-        (booking) =>
-          !attendeeName ||
-          (booking.attendees &&
-            booking.attendees.length > 0 &&
-            booking.attendees.some((attendee: any) => {
-              try {
-                const parsedAttendee = JSON.parse(attendee);
-                return parsedAttendee.name === attendeeName;
-              } catch (_) {
-                return false;
-              }
-            }))
-      )
-      .filter((booking) => !afterStart || dayjs(booking.start).isAfter(afterStart))
-      .filter((booking) => !beforeEnd || dayjs(booking.end).isBefore(beforeEnd))
+      .filter((booking) => {
+        if (!status) return true;
+        return booking.status === status;
+      })
+      .filter((booking) => {
+        if (!eventTypeId) return true;
+        return booking.eventTypeId === eventTypeId;
+      })
+      .filter((booking) => {
+        if (!eventTypeIds) return true;
+        return eventTypeIds.includes(booking.eventTypeId);
+      })
+      .filter((booking) => {
+        if (!attendeeEmail || !booking.attendees || booking.attendees.length === 0) return true;
+        return booking.attendees.some((attendee: any) => {
+          try {
+            const parsedAttendee = JSON.parse(attendee);
+            return parsedAttendee.email === attendeeEmail;
+          } catch (_) {
+            return false;
+          }
+        });
+      })
+      .filter((booking) => {
+        if (!attendeeName || !booking.attendees || booking.attendees.length === 0) return true;
+        return booking.attendees.some((attendee: any) => {
+          try {
+            const parsedAttendee = JSON.parse(attendee);
+            return parsedAttendee.name === attendeeName;
+          } catch (_) {
+            return false;
+          }
+        });
+      })
+      .filter((booking) => {
+        if (!afterStart) return true;
+        return dayjs(booking.start).isAfter(afterStart);
+      })
+      .filter((booking) => {
+        if (!beforeEnd) return true;
+        return dayjs(booking.end).isBefore(beforeEnd);
+      })
       .sort((a, b) =>
         sortStart === "asc" ? dayjs(a.start).diff(dayjs(b.start)) : dayjs(b.start).diff(dayjs(a.start))
       )
