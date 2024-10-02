@@ -250,8 +250,7 @@ export class BookingsController {
       .from("Booking")
       .select(
         "id, uid, createdAt, status, cancellationReason, reschedulingReason, startTime, endTime, eventTypeId, attendees, absentHost"
-      )
-      .limit(4);
+      );
 
     const formattedBookings = (bookings as any[]).map((booking) => {
       const duration = dayjs(booking.endTime as string).diff(dayjs(booking.startTime as string), "minutes");
@@ -299,44 +298,44 @@ export class BookingsController {
             return false;
           }
         });
-      });
-    //   .filter((booking) => {
-    //     if (!attendeeName || !booking.attendees || booking.attendees.length === 0) return true;
-    //     return booking.attendees.some((attendee: any) => {
-    //       try {
-    //         const parsedAttendee = JSON.parse(attendee);
-    //         return parsedAttendee.name === attendeeName;
-    //       } catch (_) {
-    //         return false;
-    //       }
-    //     });
-    //   })
-    //   .filter((booking) => {
-    //     if (!afterStart) return true;
-    //     return dayjs(booking.start).isAfter(afterStart);
-    //   })
-    //   .filter((booking) => {
-    //     if (!beforeEnd) return true;
-    //     return dayjs(booking.end).isBefore(beforeEnd);
-    //   })
-    //   .sort((a, b) =>
-    //     sortStart === "asc" ? dayjs(a.start).diff(dayjs(b.start)) : dayjs(b.start).diff(dayjs(a.start))
-    //   )
-    //   .sort((a, b) => (sortEnd === "asc" ? dayjs(a.end).diff(dayjs(b.end)) : dayjs(b.end).diff(dayjs(a.end))))
-    //   .sort((a, b) =>
-    //     sortCreated === "asc"
-    //       ? dayjs(a.created).diff(dayjs(b.created))
-    //       : dayjs(b.created).diff(dayjs(a.created))
-    //   );
+      })
+      .filter((booking) => {
+        if (!attendeeName || !booking.attendees || booking.attendees.length === 0) return true;
+        return booking.attendees.some((attendee: any) => {
+          try {
+            const parsedAttendee = JSON.parse(attendee);
+            return parsedAttendee.name === attendeeName;
+          } catch (_) {
+            return false;
+          }
+        });
+      })
+      .filter((booking) => {
+        if (!afterStart) return true;
+        return dayjs(booking.start).isAfter(afterStart);
+      })
+      .filter((booking) => {
+        if (!beforeEnd) return true;
+        return dayjs(booking.end).isBefore(beforeEnd);
+      })
+      .sort((a, b) =>
+        sortStart === "asc" ? dayjs(a.start).diff(dayjs(b.start)) : dayjs(b.start).diff(dayjs(a.start))
+      )
+      .sort((a, b) => (sortEnd === "asc" ? dayjs(a.end).diff(dayjs(b.end)) : dayjs(b.end).diff(dayjs(a.end))))
+      .sort((a, b) =>
+        sortCreated === "asc"
+          ? dayjs(a.created).diff(dayjs(b.created))
+          : dayjs(b.created).diff(dayjs(a.created))
+      );
 
     const finishFormattedBookings = filteredBookings.map((booking) => {
       const { created: _, ...rest } = booking;
       return rest;
     });
 
-    // if (!!take)
-    //   if (skip) finishFormattedBookings = finishFormattedBookings.slice(skip, (take as number) + skip);
-    //   else finishFormattedBookings = finishFormattedBookings.slice(0, take as number);
+    if (!!take)
+      if (skip) finishFormattedBookings = finishFormattedBookings.slice(skip, (take as number) + skip);
+      else finishFormattedBookings = finishFormattedBookings.slice(0, take as number);
 
     // // case !!teamsIds:
     // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
