@@ -252,8 +252,14 @@ export class BookingsController {
         "id, uid, createdAt, status, cancellationReason, reschedulingReason, startTime, endTime, eventTypeId, attendees, absentHost"
       );
 
+    const { data: bookingReferences } = await supabase
+      .from("BookingReference")
+      .select("bookingId, meetingUrl");
+
     const formattedBookings = (bookings as any[]).map((booking) => {
       const duration = dayjs(booking.endTime as string).diff(dayjs(booking.startTime as string), "minutes");
+      const findedBookingReference = (bookingReferences as any[]).find((ref) => ref.bookingId === booking.id);
+      const meetingUrl = findedBookingReference ? findedBookingReference.meetingUrl : null;
 
       return {
         id: booking.id,
@@ -268,7 +274,7 @@ export class BookingsController {
         attendees: booking.attendees,
         absentHost: booking.absentHost,
         created: booking.createdAt,
-        meetingUrl: "TODO",
+        meetingUrl,
         hosts: "TODO",
         guests: "TODO",
         rescheduledFromUid: "TODO",
