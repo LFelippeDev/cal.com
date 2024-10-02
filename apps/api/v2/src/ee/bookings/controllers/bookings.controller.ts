@@ -246,16 +246,11 @@ export class BookingsController {
     teamId,
     teamsIds,
   }: GetBookingsInput): Promise<GetBookingsOutput["data"]["bookings"]> {
-    const { data: bookings, error } = await supabase
+    const { data: bookings } = await supabase
       .from(
         "id, uid, hosts, createdAt, status, cancellationReason, reschedulingReason, rescheduledFromUid, startTime, endTime, duration, eventTypeId, attendees, guests, meetingUrl, absentHost"
       )
       .select("*");
-
-    // meetingUrl
-    // hosts
-    // guests
-    // rescheduledFromUid
 
     const formattedBookings = (bookings as any[]).map((booking) => {
       const duration = dayjs(booking.endTime as string).diff(dayjs(booking.startTime as string), "minutes");
@@ -273,6 +268,10 @@ export class BookingsController {
         attendees: booking.attendees,
         absentHost: booking.absentHost,
         created: booking.createdAt,
+        meetingUrl: "TODO",
+        hosts: "TODO",
+        guests: "TODO",
+        rescheduledFromUid: "TODO",
       };
     });
 
@@ -280,6 +279,34 @@ export class BookingsController {
       .filter((booking) => !status || booking.status === status)
       .filter((booking) => !eventTypeId || booking.eventTypeId === eventTypeId)
       .filter((booking) => !eventTypeIds || eventTypeIds.includes(booking.eventTypeId))
+      .filter(
+        (booking) =>
+          !attendeeEmail ||
+          (booking.attendees &&
+            booking.attendees.length > 0 &&
+            booking.attendees.some((attendee: any) => {
+              try {
+                const parsedAttendee = JSON.parse(attendee);
+                return parsedAttendee.email === attendeeEmail;
+              } catch (_) {
+                return false;
+              }
+            }))
+      )
+      .filter(
+        (booking) =>
+          !attendeeName ||
+          (booking.attendees &&
+            booking.attendees.length > 0 &&
+            booking.attendees.some((attendee: any) => {
+              try {
+                const parsedAttendee = JSON.parse(attendee);
+                return parsedAttendee.name === attendeeName;
+              } catch (_) {
+                return false;
+              }
+            }))
+      )
       .filter((booking) => !afterStart || dayjs(booking.start).isAfter(afterStart))
       .filter((booking) => !beforeEnd || dayjs(booking.end).isBefore(beforeEnd))
       .sort((a, b) =>
@@ -301,10 +328,6 @@ export class BookingsController {
       if (skip) finishFormattedBookings = finishFormattedBookings.slice(skip, (take as number) + skip);
       else finishFormattedBookings = finishFormattedBookings.slice(0, take as number);
 
-    // // case !!attendeeEmail:
-    // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
-    // // case !!attendeeName:
-    // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
     // // case !!teamsIds:
     // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
     // // case !!teamId:

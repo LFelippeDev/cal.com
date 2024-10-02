@@ -22,6 +22,7 @@ export enum Status {
   past = "past",
   cancelled = "cancelled",
   unconfirmed = "unconfirmed",
+  pending = "pending",
 }
 
 type StatusType = keyof typeof Status;
