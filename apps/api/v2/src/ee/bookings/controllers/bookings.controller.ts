@@ -276,30 +276,30 @@ export class BookingsController {
       };
     });
 
-    // const filteredBookings = formattedBookings
-    //   .filter((booking) => {
-    //     if (!status) return true;
-    //     return booking.status === status;
-    //   })
-    //   .filter((booking) => {
-    //     if (!eventTypeId) return true;
-    //     return booking.eventTypeId === eventTypeId;
-    //   })
-    //   .filter((booking) => {
-    //     if (!eventTypeIds) return true;
-    //     return eventTypeIds.includes(booking.eventTypeId);
-    //   })
-    //   .filter((booking) => {
-    //     if (!attendeeEmail || !booking.attendees || booking.attendees.length === 0) return true;
-    //     return booking.attendees.some((attendee: any) => {
-    //       try {
-    //         const parsedAttendee = JSON.parse(attendee);
-    //         return parsedAttendee.email === attendeeEmail;
-    //       } catch (_) {
-    //         return false;
-    //       }
-    //     });
-    //   })
+    const filteredBookings = formattedBookings
+      .filter((booking) => {
+        if (!status) return true;
+        return booking.status === status;
+      })
+      .filter((booking) => {
+        if (!eventTypeId) return true;
+        return booking.eventTypeId === eventTypeId;
+      })
+      .filter((booking) => {
+        if (!eventTypeIds) return true;
+        return eventTypeIds.includes(booking.eventTypeId);
+      })
+      .filter((booking) => {
+        if (!attendeeEmail || !booking.attendees || booking.attendees.length === 0) return true;
+        return booking.attendees.some((attendee: any) => {
+          try {
+            const parsedAttendee = JSON.parse(attendee);
+            return parsedAttendee.email === attendeeEmail;
+          } catch (_) {
+            return false;
+          }
+        });
+      });
     //   .filter((booking) => {
     //     if (!attendeeName || !booking.attendees || booking.attendees.length === 0) return true;
     //     return booking.attendees.some((attendee: any) => {
@@ -329,10 +329,10 @@ export class BookingsController {
     //       : dayjs(b.created).diff(dayjs(a.created))
     //   );
 
-    // let finishFormattedBookings = filteredBookings.map((booking) => {
-    //   const { created: _, ...rest } = booking;
-    //   return rest;
-    // });
+    const finishFormattedBookings = filteredBookings.map((booking) => {
+      const { created: _, ...rest } = booking;
+      return rest;
+    });
 
     // if (!!take)
     //   if (skip) finishFormattedBookings = finishFormattedBookings.slice(skip, (take as number) + skip);
@@ -343,7 +343,7 @@ export class BookingsController {
     // // case !!teamId:
     // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
 
-    return formattedBookings as unknown as GetBookingsOutput["data"]["bookings"];
+    return finishFormattedBookings as unknown as GetBookingsOutput["data"]["bookings"];
   }
 
   private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"] | null> {
