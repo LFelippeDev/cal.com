@@ -246,35 +246,35 @@ export class BookingsController {
     teamId,
     teamsIds,
   }: GetBookingsInput): Promise<GetBookingsOutput["data"]["bookings"]> {
-    const { data: bookings } = await supabase
+    const data = await supabase
       .from("Boooking")
       .select(
         "id, uid, hosts, createdAt, status, cancellationReason, reschedulingReason, rescheduledFromUid, startTime, endTime, duration, eventTypeId, attendees, guests, meetingUrl, absentHost"
       )
       .limit(4);
 
-    const formattedBookings = (bookings as any[]).map((booking) => {
-      const duration = dayjs(booking.endTime as string).diff(dayjs(booking.startTime as string), "minutes");
+    // const formattedBookings = (bookings as any[]).map((booking) => {
+    //   const duration = dayjs(booking.endTime as string).diff(dayjs(booking.startTime as string), "minutes");
 
-      return {
-        id: bookings.id,
-        uid: booking.uid,
-        status: booking.status,
-        cancellationReason: booking.cancellationReason,
-        reschedulingReason: booking.reschedulingReason,
-        start: booking.startTime,
-        end: booking.endTime,
-        duration,
-        eventTypeId: booking.eventTypeId,
-        attendees: booking.attendees,
-        absentHost: booking.absentHost,
-        created: booking.createdAt,
-        meetingUrl: "TODO",
-        hosts: "TODO",
-        guests: "TODO",
-        rescheduledFromUid: "TODO",
-      };
-    });
+    //   return {
+    //     id: bookings.id,
+    //     uid: booking.uid,
+    //     status: booking.status,
+    //     cancellationReason: booking.cancellationReason,
+    //     reschedulingReason: booking.reschedulingReason,
+    //     start: booking.startTime,
+    //     end: booking.endTime,
+    //     duration,
+    //     eventTypeId: booking.eventTypeId,
+    //     attendees: booking.attendees,
+    //     absentHost: booking.absentHost,
+    //     created: booking.createdAt,
+    //     meetingUrl: "TODO",
+    //     hosts: "TODO",
+    //     guests: "TODO",
+    //     rescheduledFromUid: "TODO",
+    //   };
+    // });
 
     // const filteredBookings = formattedBookings
     //   .filter((booking) => {
@@ -343,7 +343,7 @@ export class BookingsController {
     // // case !!teamId:
     // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
 
-    return formattedBookings as unknown as GetBookingsOutput["data"]["bookings"];
+    return data as unknown as GetBookingsOutput["data"]["bookings"];
   }
 
   private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"] | null> {
