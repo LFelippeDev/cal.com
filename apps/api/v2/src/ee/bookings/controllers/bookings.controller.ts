@@ -328,14 +328,13 @@ export class BookingsController {
           : dayjs(b.created).diff(dayjs(a.created))
       );
 
-    const finishFormattedBookings = filteredBookings.map((booking) => {
+    let finishFormattedBookings = filteredBookings.map((booking) => {
       const { created: _, ...rest } = booking;
       return rest;
     });
 
-    if (!!take)
-      if (skip) finishFormattedBookings = finishFormattedBookings.slice(skip, (take as number) + skip);
-      else finishFormattedBookings = finishFormattedBookings.slice(0, take as number);
+    if (!!skip) finishFormattedBookings = finishFormattedBookings.slice(skip as number);
+    if (!!take) finishFormattedBookings = finishFormattedBookings.slice(0, take as number);
 
     // // case !!teamsIds:
     // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
