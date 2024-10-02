@@ -249,7 +249,7 @@ export class BookingsController {
     const data = await supabase
       .from("Booking")
       .select(
-        "id, uid, hosts, createdAt, status, cancellationReason, reschedulingReason, rescheduledFromUid, startTime, endTime, duration, eventTypeId, attendees, guests, meetingUrl, absentHost"
+        "id, uid, createdAt, status, cancellationReason, reschedulingReason, startTime, endTime, eventTypeId, attendees, absentHost"
       )
       .limit(4);
 
