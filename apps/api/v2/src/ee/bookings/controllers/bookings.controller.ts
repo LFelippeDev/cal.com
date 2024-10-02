@@ -246,7 +246,7 @@ export class BookingsController {
     teamId,
     teamsIds,
   }: GetBookingsInput): Promise<GetBookingsOutput["data"]["bookings"]> {
-    const data = await supabase
+    const { data: bookings } = await supabase
       .from("Booking")
       .select(
         "id, uid, createdAt, status, cancellationReason, reschedulingReason, startTime, endTime, eventTypeId, attendees, absentHost"
@@ -257,7 +257,7 @@ export class BookingsController {
       const duration = dayjs(booking.endTime as string).diff(dayjs(booking.startTime as string), "minutes");
 
       return {
-        id: bookings.id,
+        id: booking.id,
         uid: booking.uid,
         status: booking.status,
         cancellationReason: booking.cancellationReason,
