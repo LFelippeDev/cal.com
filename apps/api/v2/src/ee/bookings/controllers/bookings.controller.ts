@@ -249,17 +249,21 @@ export class BookingsController {
     const { data: bookings } = await supabase
       .from("Booking")
       .select(
-        "id, uid, createdAt, status, cancellationReason, reschedulingReason, startTime, endTime, eventTypeId, attendees, absentHost"
+        "id, uid, userId, createdAt, status, cancellationReason, reschedulingReason, recurringEventId, startTime, endTime, eventTypeId, attendees, absentHost"
       );
 
     const { data: bookingReferences } = await supabase
       .from("BookingReference")
       .select("bookingId, meetingUrl");
 
+    const { data: users } = await supabase.from("users").select("*");
+
     const formattedBookings = (bookings as any[]).map((booking) => {
       const duration = dayjs(booking.endTime as string).diff(dayjs(booking.startTime as string), "minutes");
       const findedBookingReference = (bookingReferences as any[]).find((ref) => ref.bookingId === booking.id);
       const meetingUrl = findedBookingReference ? findedBookingReference.meetingUrl : null;
+      const findedUser = (users as any[]).find((user) => user.id === booking.userId);
+      const hosts = findedUser ? [findedUser] : [];
 
       return {
         id: booking.id,
@@ -275,9 +279,9 @@ export class BookingsController {
         absentHost: booking.absentHost,
         created: booking.createdAt,
         meetingUrl,
-        hosts: "TODO",
+        hosts,
         guests: "TODO",
-        rescheduledFromUid: "TODO",
+        rescheduledFromUid: booking.recurringEventId,
       };
     });
 
@@ -325,13 +329,19 @@ export class BookingsController {
         return dayjs(booking.end).isBefore(beforeEnd);
       })
       .sort((a, b) =>
-        sortStart === "asc" ? dayjs(a.start).diff(dayjs(b.start)) : dayjs(b.start).diff(dayjs(a.start))
+        sortStart === "asc"
+          ? new Date(a.start).getTime() - new Date(b.start).getTime()
+          : new Date(b.start).getTime() - new Date(a.start).getTime()
       )
-      .sort((a, b) => (sortEnd === "asc" ? dayjs(a.end).diff(dayjs(b.end)) : dayjs(b.end).diff(dayjs(a.end))))
+      .sort((a, b) =>
+        sortEnd === "asc"
+          ? new Date(a.end).getTime() - new Date(b.end).getTime()
+          : new Date(b.end).getTime() - new Date(a.end).getTime()
+      )
       .sort((a, b) =>
         sortCreated === "asc"
-          ? dayjs(a.created).diff(dayjs(b.created))
-          : dayjs(b.created).diff(dayjs(a.created))
+          ? new Date(a.created).getTime() - new Date(b.created).getTime()
+          : new Date(b.created).getTime() - new Date(a.created).getTime()
       );
 
     let finishFormattedBookings = filteredBookings.map((booking) => {
