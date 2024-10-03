@@ -328,21 +328,36 @@ export class BookingsController {
         if (!beforeEnd) return true;
         return dayjs(booking.end).isBefore(beforeEnd);
       })
-      .sort((a, b) =>
-        sortStart === "asc"
-          ? new Date(a.start).getTime() - new Date(b.start).getTime()
-          : new Date(b.start).getTime() - new Date(a.start).getTime()
-      )
-      .sort((a, b) =>
-        sortEnd === "asc"
-          ? new Date(a.end).getTime() - new Date(b.end).getTime()
-          : new Date(b.end).getTime() - new Date(a.end).getTime()
-      )
-      .sort((a, b) =>
-        sortCreated === "asc"
-          ? new Date(a.created).getTime() - new Date(b.created).getTime()
-          : new Date(b.created).getTime() - new Date(a.created).getTime()
-      );
+      .sort((a, b) => {
+        const aTime = new Date(a.start).getTime();
+        const bTime = new Date(b.start).getTime();
+
+        if (aTime === bTime || !sortStart) return 0;
+        else if (aTime > bTime && sortStart === "asc") return 1;
+        else if (aTime < bTime && sortStart === "desc") return 1;
+        else if (aTime < bTime && sortStart === "asc") return -1;
+        else return -1;
+      })
+      .sort((a, b) => {
+        const aTime = new Date(a.end).getTime();
+        const bTime = new Date(b.end).getTime();
+
+        if (aTime === bTime || !sortEnd) return 0;
+        else if (aTime > bTime && sortEnd === "asc") return 1;
+        else if (aTime < bTime && sortEnd === "desc") return 1;
+        else if (aTime < bTime && sortEnd === "asc") return -1;
+        else return -1;
+      })
+      .sort((a, b) => {
+        const aTime = new Date(a.end).getTime();
+        const bTime = new Date(b.end).getTime();
+
+        if (aTime === bTime || !sortCreated) return 0;
+        else if (aTime > bTime && sortCreated === "asc") return 1;
+        else if (aTime < bTime && sortCreated === "desc") return 1;
+        else if (aTime < bTime && sortCreated === "asc") return -1;
+        else return -1;
+      });
 
     let finishFormattedBookings = filteredBookings.map((booking) => {
       const { created: _, ...rest } = booking;
