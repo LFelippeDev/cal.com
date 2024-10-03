@@ -264,8 +264,8 @@ export class BookingsController {
       const meetingUrl = findedBookingReference ? findedBookingReference.meetingUrl : null;
       const findedUser = (users as any[]).find((user) => user.id === booking.userId);
       const hosts = findedUser ? [findedUser] : [];
-      // const parsedResponses = booking.responses ? JSON.parse(booking.responses) : null;
-      const guests = booking.responses;
+      const guests = booking.responses ? booking.responses.guests : null;
+
       return {
         id: booking.id,
         uid: booking.uid,
