@@ -287,13 +287,10 @@ export class BookingsController {
       };
     });
 
-    const logs = [];
-
     const filteredBookings = formattedBookings
       .filter((booking) => {
         if (!status) return true;
-        logs.push([booking.status, status]);
-        return booking.status === status;
+        return status.includes(booking.status);
       })
       .filter((booking) => {
         if (!eventTypeId) return true;
@@ -377,7 +374,7 @@ export class BookingsController {
     // // case !!teamId:
     // //   supabaseQuery = supabaseQuery.eq("attendees.email", attendeeEmail);
 
-    return logs as unknown as GetBookingsOutput["data"]["bookings"];
+    return finishFormattedBookings as unknown as GetBookingsOutput["data"]["bookings"];
   }
 
   private async getBookingInfo(bookingUid: string): Promise<GetBookingOutput["data"] | null> {
