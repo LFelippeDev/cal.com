@@ -249,7 +249,7 @@ export class BookingsController {
     const { data: bookings } = await supabase
       .from("Booking")
       .select(
-        "id, uid, userId, createdAt, status, cancellationReason, reschedulingReason, recurringEventId, startTime, endTime, eventTypeId, attendees, absentHost"
+        "id, uid, userId, createdAt, status, cancellationReason, responses, reschedulingReason, recurringEventId, startTime, endTime, eventTypeId, attendees, absentHost"
       );
 
     const { data: bookingReferences } = await supabase
@@ -264,6 +264,8 @@ export class BookingsController {
       const meetingUrl = findedBookingReference ? findedBookingReference.meetingUrl : null;
       const findedUser = (users as any[]).find((user) => user.id === booking.userId);
       const hosts = findedUser ? [findedUser] : [];
+      const parsedResponses = booking.responses ? JSON.parse(booking.responses) : null;
+      const guests = parsedResponses ? parsedResponses.guests : null;
 
       return {
         id: booking.id,
@@ -280,7 +282,7 @@ export class BookingsController {
         created: booking.createdAt,
         meetingUrl,
         hosts,
-        guests: "TODO",
+        guests,
         rescheduledFromUid: booking.recurringEventId,
       };
     });
