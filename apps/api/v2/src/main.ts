@@ -9,7 +9,8 @@ import { WinstonModule } from "nest-winston";
 import { bootstrap } from "./app";
 import { AppModule } from "./app.module";
 import { loggerConfig } from "./lib/logger";
-import { generateSwaggerForApp } from "./swagger/generate-swagger";
+
+// import { generateSwaggerForApp } from "./swagger/generate-swagger";
 
 run().catch((error: Error) => {
   console.error("Failed to start Cal Platform API", { error: error.stack });
@@ -23,7 +24,7 @@ async function run() {
   try {
     bootstrap(app);
     const port = app.get(ConfigService<AppConfig, true>).get("api.port", { infer: true });
-    generateSwaggerForApp(app);
+    // generateSwaggerForApp(app);
     await app.listen(port);
     logger.log(`Application started on port: ${port}`);
   } catch (error) {
