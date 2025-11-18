@@ -5,7 +5,6 @@ import { PrismaExceptionFilter } from "@/filters/prisma-exception.filter";
 import { ZodExceptionFilter } from "@/filters/zod-exception.filter";
 import type { ValidationError } from "@nestjs/common";
 import { BadRequestException, ValidationPipe, VersioningType } from "@nestjs/common";
-import { BaseExceptionFilter, HttpAdapterHost } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import * as cookieParser from "cookie-parser";
 import { Request } from "express";
@@ -13,12 +12,12 @@ import helmet from "helmet";
 
 import {
   API_VERSIONS,
-  VERSION_2024_04_15,
   API_VERSIONS_ENUM,
   CAL_API_VERSION_HEADER,
+  VERSION_2024_04_15,
   X_CAL_CLIENT_ID,
-  X_CAL_SECRET_KEY,
   X_CAL_PLATFORM_EMBED,
+  X_CAL_SECRET_KEY,
 } from "@calcom/platform-constants";
 
 import { CalendarServiceExceptionFilter } from "./filters/calendar-service-exception.filter";
@@ -72,7 +71,6 @@ export const bootstrap = (app: NestExpressApplication): NestExpressApplication =
   );
 
   // Exception filters, new filters go at the bottom, keep the order
-  const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalFilters(new ZodExceptionFilter());
   app.useGlobalFilters(new HttpExceptionFilter());
@@ -80,10 +78,6 @@ export const bootstrap = (app: NestExpressApplication): NestExpressApplication =
   app.useGlobalFilters(new CalendarServiceExceptionFilter());
 
   app.use(cookieParser());
-
-  if (process?.env?.API_GLOBAL_PREFIX) {
-    app.setGlobalPrefix(process?.env?.API_GLOBAL_PREFIX);
-  }
 
   return app;
 };

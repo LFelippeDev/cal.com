@@ -3,7 +3,7 @@ import "dotenv/config";
 
 const env: Partial<Omit<Environment, "NODE_ENV">> = {
   API_URL: "http://localhost",
-  API_PORT: "5555",
+  PORT: "5555",
   DATABASE_URL: "postgresql://postgres:@localhost:5450/calendso",
   DATABASE_READ_URL: "postgresql://postgres:@localhost:5450/calendso",
   DATABASE_WRITE_URL: "postgresql://postgres:@localhost:5450/calendso",
@@ -36,5 +36,5 @@ process.env = {
   CALENDSO_ENCRYPTION_KEY: "22gfxhWUlcKliUeXcu8xNah2+HP/29ZX",
   INTEGRATION_TEST_MODE: "true",
   e2e: "true",
-  SLOTS_CACHE_TTL: "1"
+  SLOTS_CACHE_TTL: "1",
 };
